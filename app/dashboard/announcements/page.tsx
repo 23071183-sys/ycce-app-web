@@ -39,12 +39,22 @@ export default function AnnouncementsPage() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const availableTypes = isProfessor()
-    ? ALL_TYPES.filter(t => t.value === 'subject_specific')
-    : ALL_TYPES;
-  const [type, setType] = useState(isProfessor() ? 'subject_specific' : 'general');
+  const [role, setRole] = useState<string>('');
+  const [type, setType] = useState('general');
   const [year, setYear] = useState('1');
   const [subjectId, setSubjectId] = useState('');
+
+  const userIsProfessor = role === 'professor';
+  const availableTypes = userIsProfessor
+    ? ALL_TYPES.filter(t => t.value === 'subject_specific')
+    : ALL_TYPES;
+
+  useEffect(() => {
+    const u = getUser();
+    const r = u?.role || '';
+    setRole(r);
+    if (r === 'professor') setType('subject_specific');
+  }, []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -59,10 +69,10 @@ export default function AnnouncementsPage() {
         api.get('/announcements/year/3'),
         api.get('/announcements/year/4'),
       ];
-      if (isProfessor()) requests.push(api.get('/subjects/my-subjects'));
+      if (userIsProfessor) requests.push(api.get('/subjects/my-subjects'));
       const results = await Promise.all(requests);
       const [general, y1, y2, y3, y4] = results;
-      if (isProfessor() && results[5]) {
+      if (userIsProfessor && results[5]) {
         setMySubjects(results[5].data);
         if (results[5].data.length > 0) setSubjectId(String(results[5].data[0].id));
       }
@@ -93,7 +103,7 @@ export default function AnnouncementsPage() {
         year: type === 'year_specific' ? parseInt(year) : null,
         subject_id: type === 'subject_specific' ? parseInt(subjectId) : null,
       });
-      setTitle(''); setContent(''); setType(isProfessor() ? 'subject_specific' : 'general'); setYear('1'); setSubjectId('');
+      setTitle(''); setContent(''); setType(userIsProfessor ? 'subject_specific' : 'general'); setYear('1'); setSubjectId('');
       setOpen(false);
       await load();
       showSuccess('Announcement posted!');
@@ -113,7 +123,7 @@ export default function AnnouncementsPage() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-light tracking-widest uppercase text-foreground">Announcements</h1>
-        {canPost() && (
+        {['super_admin', 'admin', 'professor'].includes(role) && (
         <Dialog open={open} onOpenChange={v => { setOpen(v); setError(''); }}>
           <DialogTrigger className="flex items-center gap-1.5 bg-foreground text-background hover:bg-foreground/90 text-xs tracking-widest uppercase font-light px-4 py-2 rounded-md transition-colors">
             <Plus size={14} /> New
