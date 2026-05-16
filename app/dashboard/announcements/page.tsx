@@ -7,17 +7,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Trash2, Loader2, Megaphone, CheckCircle } from 'lucide-react';
-import { isSuperAdmin } from '@/lib/auth';
+import { isSuperAdmin, getUser } from '@/lib/auth';
 
 type Announcement = {
   id: number; title: string; content: string; type: string;
   year?: number; created_at: string; posted_by_name?: string;
 };
 
-const TYPES = [
+const ALL_TYPES = [
   { value: 'general', label: 'General (All Years)' },
   { value: 'year_specific', label: 'Year Specific' },
 ];
+
+const canPost = () => {
+  const u = getUser();
+  return ['super_admin', 'admin', 'professor'].includes(u?.role);
+};
 
 const MAX_CONTENT_LENGTH = 1000;
 
@@ -27,7 +32,8 @@ export default function AnnouncementsPage() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [type, setType] = useState('general');
+  const availableTypes = isSuperAdmin() ? ALL_TYPES : ALL_TYPES.filter(t => t.value !== 'general');
+  const [type, setType] = useState(isSuperAdmin() ? 'general' : 'year_specific');
   const [year, setYear] = useState('1');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -90,7 +96,7 @@ export default function AnnouncementsPage() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-light tracking-widest uppercase text-foreground">Announcements</h1>
-        {isSuperAdmin() && (
+        {canPost() && (
         <Dialog open={open} onOpenChange={v => { setOpen(v); setError(''); }}>
           <DialogTrigger className="flex items-center gap-1.5 bg-foreground text-background hover:bg-foreground/90 text-xs tracking-widest uppercase font-light px-4 py-2 rounded-md transition-colors">
             <Plus size={14} /> New
@@ -104,7 +110,7 @@ export default function AnnouncementsPage() {
                 <Label className="text-muted-foreground text-xs tracking-widest uppercase">Type</Label>
                 <select value={type} onChange={e => setType(e.target.value)}
                   className="w-full bg-muted border border-border text-foreground rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-600">
-                  {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  {availableTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
               {type === 'year_specific' && (
