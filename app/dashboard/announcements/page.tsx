@@ -11,12 +11,17 @@ import { isSuperAdmin, getUser } from '@/lib/auth';
 
 type Announcement = {
   id: number; title: string; content: string; type: string;
-  year?: number; created_at: string; posted_by_name?: string;
+  year?: number; subject_id?: number; created_at: string; posted_by_name?: string;
 };
+type Subject = { id: number; name: string; year: number };
+
+const isProfessor = () => getUser()?.role === 'professor';
+const isAdmin = () => ['super_admin', 'admin'].includes(getUser()?.role);
 
 const ALL_TYPES = [
   { value: 'general', label: 'General (All Years)' },
   { value: 'year_specific', label: 'Year Specific' },
+  { value: 'subject_specific', label: 'Subject Specific' },
 ];
 
 const canPost = () => {
@@ -28,13 +33,17 @@ const MAX_CONTENT_LENGTH = 1000;
 
 export default function AnnouncementsPage() {
   const [items, setItems] = useState<Announcement[]>([]);
+  const [mySubjects, setMySubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const availableTypes = isSuperAdmin() ? ALL_TYPES : ALL_TYPES.filter(t => t.value !== 'general');
-  const [type, setType] = useState(isSuperAdmin() ? 'general' : 'year_specific');
+  const availableTypes = isProfessor()
+    ? ALL_TYPES.filter(t => t.value === 'subject_specific')
+    : isSuperAdmin() ? ALL_TYPES : ALL_TYPES.filter(t => t.value !== 'general');
+  const [type, setType] = useState(isProfessor() ? 'subject_specific' : isSuperAdmin() ? 'general' : 'year_specific');
   const [year, setYear] = useState('1');
+  const [subjectId, setSubjectId] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -42,15 +51,21 @@ export default function AnnouncementsPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const [general, y1, y2, y3, y4] = await Promise.all([
+      const requests: Promise<any>[] = [
         api.get('/announcements/general'),
         api.get('/announcements/year/1'),
         api.get('/announcements/year/2'),
         api.get('/announcements/year/3'),
         api.get('/announcements/year/4'),
-      ]);
+      ];
+      if (isProfessor()) requests.push(api.get('/subjects/my-subjects'));
+      const results = await Promise.all(requests);
+      const [general, y1, y2, y3, y4] = results;
+      if (isProfessor() && results[5]) {
+        setMySubjects(results[5].data);
+        if (results[5].data.length > 0) setSubjectId(String(results[5].data[0].id));
+      }
       const all = [...general.data, ...y1.data, ...y2.data, ...y3.data, ...y4.data];
-      // deduplicate by id and sort by date
       const unique = Array.from(new Map(all.map(a => [a.id, a])).values())
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setItems(unique);
@@ -75,8 +90,9 @@ export default function AnnouncementsPage() {
         content: content.trim(),
         type,
         year: type === 'year_specific' ? parseInt(year) : null,
+        subject_id: type === 'subject_specific' ? parseInt(subjectId) : null,
       });
-      setTitle(''); setContent(''); setType('general'); setYear('1');
+      setTitle(''); setContent(''); setType(isProfessor() ? 'subject_specific' : 'general'); setYear('1'); setSubjectId('');
       setOpen(false);
       await load();
       showSuccess('Announcement posted!');
@@ -119,6 +135,18 @@ export default function AnnouncementsPage() {
                   <select value={year} onChange={e => setYear(e.target.value)}
                     className="w-full bg-muted border border-border text-foreground rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-600">
                     {['1','2','3','4'].map(y => <option key={y} value={y}>Year {y}</option>)}
+                  </select>
+                </div>
+              )}
+              {type === 'subject_specific' && (
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground text-xs tracking-widest uppercase">Subject</Label>
+                  <select value={subjectId} onChange={e => setSubjectId(e.target.value)}
+                    className="w-full bg-muted border border-border text-foreground rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-600">
+                    <option value="">Select subject...</option>
+                    {mySubjects.map(s => (
+                      <option key={s.id} value={s.id}>{s.name} (Year {s.year})</option>
+                    ))}
                   </select>
                 </div>
               )}
