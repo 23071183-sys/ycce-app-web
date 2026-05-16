@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { CheckCircle, XCircle, Loader2, Search, Users, Megaphone } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { isSuperAdmin, getUser } from '@/lib/auth';
 
 type User = {
@@ -190,7 +191,17 @@ export default function UsersPage() {
           <Card className="bg-card border-border">
             <CardContent className="p-0">
               {loading ? (
-                <div className="flex justify-center py-16"><Loader2 className="animate-spin text-muted-foreground" /></div>
+                <div className="p-4 space-y-3">
+                  {[1,2,3,4,5].map(i => (
+                    <div key={i} className="flex items-center gap-4">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-4 w-40" />
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-8" />
+                      <Skeleton className="h-5 w-16 rounded" />
+                    </div>
+                  ))}
+                </div>
               ) : filteredAll.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-3">
                   <Users size={40} className="text-muted-foreground/40" />

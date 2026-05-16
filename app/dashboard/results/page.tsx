@@ -2,6 +2,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import api from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -260,8 +261,16 @@ export default function ResultsPage() {
       <Card className="bg-card border-border mb-6">
         <CardContent className="p-0">
           {loading ? (
-            <div className="flex justify-center py-16">
-              <Loader2 className="animate-spin text-muted-foreground" />
+            <div className="p-4 space-y-3">
+              {[1,2,3,4].map(i => (
+                <div key={i} className="flex items-center gap-4">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-4 w-12" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              ))}
             </div>
           ) : (
             <Table>
