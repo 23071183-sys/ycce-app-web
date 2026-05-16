@@ -50,8 +50,7 @@ export default function ChatPage() {
         .filter((m, i) => !(m.role === 'assistant' && i === 0))
         .map(m => ({ role: m.role, content: m.content }));
 
-      const endpoint = isAdmin ? '/chat/admin' : '/chat';
-      const { data } = await api.post(endpoint, { messages: apiMessages });
+      const { data } = await api.post('/chat/dashboard', { messages: apiMessages });
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, something went wrong. Please try again.' }]);
