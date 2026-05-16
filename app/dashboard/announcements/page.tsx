@@ -40,8 +40,8 @@ export default function AnnouncementsPage() {
   const [content, setContent] = useState('');
   const availableTypes = isProfessor()
     ? ALL_TYPES.filter(t => t.value === 'subject_specific')
-    : isSuperAdmin() ? ALL_TYPES : ALL_TYPES.filter(t => t.value !== 'general');
-  const [type, setType] = useState(isProfessor() ? 'subject_specific' : isSuperAdmin() ? 'general' : 'year_specific');
+    : ALL_TYPES;
+  const [type, setType] = useState(isProfessor() ? 'subject_specific' : 'general');
   const [year, setYear] = useState('1');
   const [subjectId, setSubjectId] = useState('');
   const [saving, setSaving] = useState(false);
