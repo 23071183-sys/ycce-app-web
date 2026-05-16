@@ -7,30 +7,34 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { CheckCircle, XCircle, Loader2, Search, Users } from 'lucide-react';
-import { isSuperAdmin } from '@/lib/auth';
+import { CheckCircle, XCircle, Loader2, Search, Users, Megaphone } from 'lucide-react';
+import { isSuperAdmin, getUser } from '@/lib/auth';
 
 type User = {
   id: number; name: string; email: string; role: string;
   year: number; roll_number: string; department: string; status: string;
 };
+type StaffUser = { id: number; name: string; email: string; role: string; can_post_general: boolean };
 
 export default function UsersPage() {
   const [pending, setPending] = useState<User[]>([]);
   const [all, setAll] = useState<User[]>([]);
+  const [staff, setStaff] = useState<StaffUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<number | null>(null);
   const [tab, setTab] = useState('all');
   const [search, setSearch] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const canWrite = isSuperAdmin();
+  const canManageStaff = ['super_admin', 'admin'].includes(getUser()?.role);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [p, a] = await Promise.all([api.get('/admin/pending'), api.get('/admin/users')]);
+      const [p, a, s] = await Promise.all([api.get('/admin/pending'), api.get('/admin/users'), api.get('/admin/faculty')]);
       setPending(p.data);
       setAll(a.data);
+      setStaff(s.data);
     } catch {}
     setLoading(false);
   };
@@ -57,6 +61,14 @@ export default function UsersPage() {
     await load();
     setActing(null);
     showSuccess('User rejected.');
+  };
+
+  const toggleGeneralPost = async (id: number) => {
+    setActing(id);
+    const res = await api.put(`/admin/users/${id}/toggle-general-post`);
+    setStaff(prev => prev.map(u => u.id === id ? { ...u, can_post_general: res.data.can_post_general } : u));
+    setActing(null);
+    showSuccess(`General announcement permission ${res.data.can_post_general ? 'granted' : 'revoked'}.`);
   };
 
   const statusBadge = (s: string) => {
@@ -104,6 +116,11 @@ export default function UsersPage() {
           <TabsTrigger value="pending" className="data-[state=active]:bg-white data-[state=active]:text-black text-zinc-400">
             Pending {pending.length > 0 && `(${pending.length})`}
           </TabsTrigger>
+          {canManageStaff && (
+            <TabsTrigger value="staff" className="data-[state=active]:bg-white data-[state=active]:text-black text-zinc-400">
+              Staff Permissions
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="pending">
@@ -211,6 +228,56 @@ export default function UsersPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {canManageStaff && (
+          <TabsContent value="staff">
+            <Card className="bg-card border-border">
+              <CardContent className="p-0">
+                {loading ? (
+                  <div className="flex justify-center py-16"><Loader2 className="animate-spin text-muted-foreground" /></div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-border hover:bg-transparent">
+                        <TableHead className="text-muted-foreground text-xs tracking-widest uppercase">Name</TableHead>
+                        <TableHead className="text-muted-foreground text-xs tracking-widest uppercase">Email</TableHead>
+                        <TableHead className="text-muted-foreground text-xs tracking-widest uppercase">Role</TableHead>
+                        <TableHead className="text-muted-foreground text-xs tracking-widest uppercase">General Announcements</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {staff.map(u => (
+                        <TableRow key={u.id} className="border-border hover:bg-muted">
+                          <TableCell className="text-foreground text-sm">{u.name}</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">{u.email}</TableCell>
+                          <TableCell>
+                            <span className="text-xs px-2 py-0.5 rounded border tracking-wider uppercase bg-blue-900 text-blue-300 border-blue-800">
+                              {u.role}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <button
+                              onClick={() => toggleGeneralPost(u.id)}
+                              disabled={acting === u.id}
+                              className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded border tracking-wider transition-colors ${
+                                u.can_post_general
+                                  ? 'bg-green-900 text-green-300 border-green-800 hover:bg-green-800'
+                                  : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700'
+                              }`}
+                            >
+                              {acting === u.id ? <Loader2 size={12} className="animate-spin" /> : <Megaphone size={12} />}
+                              {u.can_post_general ? 'Allowed' : 'Restricted'}
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
