@@ -164,7 +164,7 @@ export default function ResultsPage() {
           onClick={openNew}
           className="flex items-center gap-1.5 bg-foreground text-background hover:bg-foreground/90 text-xs tracking-widest uppercase font-light px-4 py-2 rounded-md transition-colors"
         >
-          <Plus size={14} /> Add SGPA
+          <Plus size={14} /> Add Results
         </button>
       </div>
 
@@ -172,7 +172,7 @@ export default function ResultsPage() {
         <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
             <DialogTitle className="text-foreground font-light tracking-widest uppercase">
-              {editingId ? 'Edit SGPA' : 'Add / Update SGPA'}
+              {editingId ? 'Edit Result' : 'Add Result'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
@@ -276,7 +276,7 @@ export default function ResultsPage() {
                       <div className="flex flex-col items-center gap-3">
                         <BarChart2 size={40} className="text-muted-foreground/40" />
                         <p className="text-foreground text-sm font-medium">No results added yet</p>
-                        <p className="text-muted-foreground text-xs tracking-wide">Click "+ Add SGPA" to add the first result</p>
+                        <p className="text-muted-foreground text-xs tracking-wide">Click "+ Add Results" to add the first result</p>
                       </div>
                     </TableCell>
                   </TableRow>
