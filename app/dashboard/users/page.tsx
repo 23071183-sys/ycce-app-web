@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { CheckCircle, XCircle, Loader2, Search, Users } from 'lucide-react';
+import { isSuperAdmin } from '@/lib/auth';
 
 type User = {
   id: number; name: string; email: string; role: string;
@@ -22,6 +23,7 @@ export default function UsersPage() {
   const [tab, setTab] = useState('all');
   const [search, setSearch] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const canWrite = isSuperAdmin();
 
   const load = async () => {
     setLoading(true);
@@ -127,26 +129,28 @@ export default function UsersPage() {
                         Year {u.year} · Roll {u.roll_number} · {u.department}
                       </p>
                     </div>
-                    <div className="flex gap-2 shrink-0">
-                      <Button
-                        size="sm"
-                        onClick={() => approve(u.id)}
-                        disabled={acting === u.id}
-                        className="bg-green-900 hover:bg-green-800 text-green-300 border border-green-800 text-xs tracking-wider"
-                      >
-                        {acting === u.id ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-                        <span className="ml-1.5">Approve</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => reject(u.id)}
-                        disabled={acting === u.id}
-                        className="bg-red-900 hover:bg-red-800 text-red-300 border border-red-800 text-xs tracking-wider"
-                      >
-                        {acting === u.id ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
-                        <span className="ml-1.5">Reject</span>
-                      </Button>
-                    </div>
+                    {canWrite && (
+                      <div className="flex gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          onClick={() => approve(u.id)}
+                          disabled={acting === u.id}
+                          className="bg-green-900 hover:bg-green-800 text-green-300 border border-green-800 text-xs tracking-wider"
+                        >
+                          {acting === u.id ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                          <span className="ml-1.5">Approve</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => reject(u.id)}
+                          disabled={acting === u.id}
+                          className="bg-red-900 hover:bg-red-800 text-red-300 border border-red-800 text-xs tracking-wider"
+                        >
+                          {acting === u.id ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+                          <span className="ml-1.5">Reject</span>
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}

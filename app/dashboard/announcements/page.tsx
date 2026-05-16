@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Trash2, Loader2, Megaphone, CheckCircle } from 'lucide-react';
+import { isSuperAdmin } from '@/lib/auth';
 
 type Announcement = {
   id: number; title: string; content: string; type: string;
@@ -89,6 +90,7 @@ export default function AnnouncementsPage() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-light tracking-widest uppercase text-foreground">Announcements</h1>
+        {isSuperAdmin() && (
         <Dialog open={open} onOpenChange={v => { setOpen(v); setError(''); }}>
           <DialogTrigger className="flex items-center gap-1.5 bg-foreground text-background hover:bg-foreground/90 text-xs tracking-widest uppercase font-light px-4 py-2 rounded-md transition-colors">
             <Plus size={14} /> New
@@ -145,6 +147,7 @@ export default function AnnouncementsPage() {
             </div>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       {/* Inline success banner */}
@@ -190,9 +193,11 @@ export default function AnnouncementsPage() {
                     </p>
                   </div>
                 </div>
-                <button onClick={() => remove(a.id)} className="text-zinc-600 hover:text-red-400 transition-colors shrink-0 mt-0.5">
-                  <Trash2 size={15} />
-                </button>
+                {isSuperAdmin() && (
+                  <button onClick={() => remove(a.id)} className="text-zinc-600 hover:text-red-400 transition-colors shrink-0 mt-0.5">
+                    <Trash2 size={15} />
+                  </button>
+                )}
               </CardContent>
             </Card>
           ))}
