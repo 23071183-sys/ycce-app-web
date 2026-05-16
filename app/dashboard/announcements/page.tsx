@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -193,7 +194,24 @@ export default function AnnouncementsPage() {
       )}
 
       {loading ? (
-        <div className="flex justify-center py-16"><Loader2 className="animate-spin text-muted-foreground" /></div>
+        <div className="space-y-3">
+          {[1,2,3].map(i => (
+            <Card key={i} className="bg-card border-border">
+              <CardContent className="py-4 flex items-start gap-4">
+                <Skeleton className="w-4 h-4 mt-0.5 rounded shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-4 w-40" />
+                    <Skeleton className="h-5 w-16 rounded" />
+                  </div>
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-3/4" />
+                  <Skeleton className="h-3 w-24 mt-2" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       ) : items.length === 0 ? (
         <Card className="bg-card border-border">
           <CardContent className="py-16 flex flex-col items-center gap-3">
