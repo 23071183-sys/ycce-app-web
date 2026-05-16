@@ -18,3 +18,8 @@ export function getUser() {
   const u = localStorage.getItem('admin_user');
   return u ? JSON.parse(u) : null;
 }
+
+export function isSuperAdmin(): boolean {
+  const u = getUser();
+  return u?.role === 'super_admin';
+}
