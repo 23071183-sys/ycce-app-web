@@ -26,17 +26,21 @@ export default function UsersPage() {
   const [tab, setTab] = useState('all');
   const [search, setSearch] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [loadError, setLoadError] = useState('');
   const canWrite = isSuperAdmin();
   const canManageStaff = ['super_admin', 'admin'].includes(getUser()?.role);
 
   const load = async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const [p, a, s] = await Promise.all([api.get('/admin/pending'), api.get('/admin/users'), api.get('/admin/faculty')]);
       setPending(p.data);
       setAll(a.data);
       setStaff(s.data);
-    } catch {}
+    } catch (e: any) {
+      setLoadError(e.response?.data?.error || 'Failed to load users');
+    }
     setLoading(false);
   };
 
@@ -49,27 +53,33 @@ export default function UsersPage() {
 
   const approve = async (id: number) => {
     setActing(id);
-    await api.put(`/admin/users/${id}/approve`);
-    await load();
+    try {
+      await api.put(`/admin/users/${id}/approve`);
+      await load();
+      showSuccess('User approved successfully.');
+    } catch { setLoadError('Failed to approve user.'); }
     setActing(null);
-    showSuccess('User approved successfully.');
   };
 
   const reject = async (id: number) => {
     if (!window.confirm('Are you sure you want to reject this user?')) return;
     setActing(id);
-    await api.put(`/admin/users/${id}/reject`);
-    await load();
+    try {
+      await api.put(`/admin/users/${id}/reject`);
+      await load();
+      showSuccess('User rejected.');
+    } catch { setLoadError('Failed to reject user.'); }
     setActing(null);
-    showSuccess('User rejected.');
   };
 
   const toggleGeneralPost = async (id: number) => {
     setActing(id);
-    const res = await api.put(`/admin/users/${id}/toggle-general-post`);
-    setStaff(prev => prev.map(u => u.id === id ? { ...u, can_post_general: res.data.can_post_general } : u));
+    try {
+      const res = await api.put(`/admin/users/${id}/toggle-general-post`);
+      setStaff(prev => prev.map(u => u.id === id ? { ...u, can_post_general: res.data.can_post_general } : u));
+      showSuccess(`General announcement permission ${res.data.can_post_general ? 'granted' : 'revoked'}.`);
+    } catch { setLoadError('Failed to update permission.'); }
     setActing(null);
-    showSuccess(`General announcement permission ${res.data.can_post_general ? 'granted' : 'revoked'}.`);
   };
 
   const statusBadge = (s: string) => {
@@ -99,6 +109,12 @@ export default function UsersPage() {
   return (
     <div>
       <h1 className="text-2xl font-light tracking-widest uppercase text-foreground mb-8">Users</h1>
+
+      {loadError && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-red-900/30 border border-red-800 text-red-300 text-sm tracking-wide">
+          {loadError}
+        </div>
+      )}
 
       {/* Inline success banner */}
       {successMsg && (

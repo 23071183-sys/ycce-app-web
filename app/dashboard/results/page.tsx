@@ -50,6 +50,7 @@ export default function ResultsPage() {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
 
   const [form, setForm] = useState({
@@ -61,6 +62,7 @@ export default function ResultsPage() {
 
   const load = async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const [sgpa, users] = await Promise.all([
         api.get('/admin/sgpa'),
@@ -68,7 +70,9 @@ export default function ResultsPage() {
       ]);
       setResults(sgpa.data);
       setStudents(users.data.filter((u: any) => u.status === 'approved'));
-    } catch {}
+    } catch (e: any) {
+      setLoadError(e.response?.data?.error || 'Failed to load results');
+    }
     setLoading(false);
   };
 
@@ -256,6 +260,12 @@ export default function ResultsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {loadError && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-red-900/30 border border-red-800 text-red-300 text-sm tracking-wide">
+          {loadError}
+        </div>
+      )}
 
       {/* SGPA Table */}
       <Card className="bg-card border-border mb-6">

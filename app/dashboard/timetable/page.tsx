@@ -28,10 +28,13 @@ export default function TimetablePage() {
 
   const loadTimetable = async (y: string) => {
     setLoading(true);
+    setError('');
     try {
       const r = await api.get(`/timetable/year/${y}`);
       setItems(r.data);
-    } catch {}
+    } catch (e: any) {
+      setError(e.response?.data?.error || 'Failed to load timetable');
+    }
     setLoading(false);
   };
 
@@ -64,8 +67,12 @@ export default function TimetablePage() {
   };
 
   const remove = async (id: number) => {
-    await api.delete(`/timetable/${id}`);
-    setItems(prev => prev.filter(l => l.id !== id));
+    try {
+      await api.delete(`/timetable/${id}`);
+      setItems(prev => prev.filter(l => l.id !== id));
+    } catch {
+      setError('Failed to delete lecture. Please try again.');
+    }
   };
 
   const byDay = DAYS.map(d => ({ day: d, lectures: items.filter(l => l.day === d) }));
@@ -132,6 +139,12 @@ export default function TimetablePage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      {error && !open && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-red-900/30 border border-red-800 text-red-300 text-sm tracking-wide">
+          {error}
+        </div>
+      )}
 
       <div className="flex gap-2 mb-6">
         {['1', '2', '3', '4'].map(y => (

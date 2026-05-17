@@ -12,7 +12,7 @@ import { isSuperAdmin, getUser } from '@/lib/auth';
 
 type Announcement = {
   id: number; title: string; content: string; type: string;
-  year?: number; subject_id?: number; created_at: string; posted_by_name?: string;
+  year?: number; subject_id?: number; subject_name?: string; created_at: string; posted_by_name?: string;
 };
 type Subject = { id: number; name: string; year: number };
 
@@ -39,8 +39,8 @@ export default function AnnouncementsPage() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [role, setRole] = useState<string>('');
-  const [type, setType] = useState('general');
+  const [role] = useState<string>(() => getUser()?.role || '');
+  const [type, setType] = useState(() => getUser()?.role === 'professor' ? 'subject_specific' : 'general');
   const [year, setYear] = useState('1');
   const [subjectId, setSubjectId] = useState('');
 
@@ -48,39 +48,42 @@ export default function AnnouncementsPage() {
   const availableTypes = userIsProfessor
     ? ALL_TYPES.filter(t => t.value === 'subject_specific')
     : ALL_TYPES;
-
-  useEffect(() => {
-    const u = getUser();
-    const r = u?.role || '';
-    setRole(r);
-    if (r === 'professor') setType('subject_specific');
-  }, []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
   const load = async () => {
     setLoading(true);
+    setLoadError('');
     try {
-      const requests: Promise<any>[] = [
-        api.get('/announcements/general'),
-        api.get('/announcements/year/1'),
-        api.get('/announcements/year/2'),
-        api.get('/announcements/year/3'),
-        api.get('/announcements/year/4'),
-      ];
-      if (userIsProfessor) requests.push(api.get('/subjects/my-subjects'));
-      const results = await Promise.all(requests);
-      const [general, y1, y2, y3, y4] = results;
-      if (userIsProfessor && results[5]) {
-        setMySubjects(results[5].data);
-        if (results[5].data.length > 0) setSubjectId(String(results[5].data[0].id));
+      let allItems: Announcement[] = [];
+      if (isAdmin()) {
+        const r = await api.get('/announcements/all');
+        allItems = r.data;
+      } else {
+        const requests: Promise<any>[] = [
+          api.get('/announcements/general'),
+          api.get('/announcements/year/1'),
+          api.get('/announcements/year/2'),
+          api.get('/announcements/year/3'),
+          api.get('/announcements/year/4'),
+        ];
+        if (userIsProfessor) requests.push(api.get('/subjects/my-subjects'));
+        const results = await Promise.all(requests);
+        const [general, y1, y2, y3, y4] = results;
+        if (userIsProfessor && results[5]) {
+          setMySubjects(results[5].data);
+          if (results[5].data.length > 0) setSubjectId(String(results[5].data[0].id));
+        }
+        allItems = [...general.data, ...y1.data, ...y2.data, ...y3.data, ...y4.data];
       }
-      const all = [...general.data, ...y1.data, ...y2.data, ...y3.data, ...y4.data];
-      const unique = Array.from(new Map(all.map(a => [a.id, a])).values())
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const unique = Array.from(new Map(allItems.map((a: Announcement) => [a.id, a])).values())
+        .sort((a: Announcement, b: Announcement) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setItems(unique);
-    } catch {}
+    } catch (e: any) {
+      setLoadError(e.response?.data?.error || 'Failed to load announcements');
+    }
     setLoading(false);
   };
 
@@ -115,8 +118,12 @@ export default function AnnouncementsPage() {
 
   const remove = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this announcement?')) return;
-    await api.delete(`/announcements/${id}`);
-    setItems(prev => prev.filter(a => a.id !== id));
+    try {
+      await api.delete(`/announcements/${id}`);
+      setItems(prev => prev.filter(a => a.id !== id));
+    } catch {
+      setLoadError('Failed to delete announcement. Please try again.');
+    }
   };
 
   return (
@@ -195,6 +202,12 @@ export default function AnnouncementsPage() {
         )}
       </div>
 
+      {loadError && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-red-900/30 border border-red-800 text-red-300 text-sm tracking-wide">
+          {loadError}
+        </div>
+      )}
+
       {/* Inline success banner */}
       {successMsg && (
         <div className="mb-4 px-4 py-3 rounded-lg bg-green-900/30 border border-green-800 text-green-300 text-sm tracking-wide flex items-center gap-2">
@@ -243,9 +256,11 @@ export default function AnnouncementsPage() {
                       <span className={`text-xs px-2 py-0.5 rounded border tracking-wider uppercase ${
                         a.type === 'general'
                           ? 'bg-blue-900 text-blue-300 border-blue-800'
-                          : 'bg-purple-900 text-purple-300 border-purple-800'
+                          : a.type === 'year_specific'
+                          ? 'bg-purple-900 text-purple-300 border-purple-800'
+                          : 'bg-green-900 text-green-300 border-green-800'
                       }`}>
-                        {a.type === 'general' ? 'General' : `Year ${a.year}`}
+                        {a.type === 'general' ? 'General' : a.type === 'year_specific' ? `Year ${a.year}` : (a.subject_name || 'Subject')}
                       </span>
                     </div>
                     <p className="text-muted-foreground text-sm leading-relaxed">{a.content}</p>
