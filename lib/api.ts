@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://appealing-renewal-production-455f.up.railway.app/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://reporting-games-hitting-scratch.trycloudflare.com/api',
 });
 
 api.interceptors.request.use((config) => {
