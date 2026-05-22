@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://explore-uploaded-nursery-generation.trycloudflare.com/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://ycce-app-backend.onrender.com/api',
 });
 
 api.interceptors.request.use((config) => {
