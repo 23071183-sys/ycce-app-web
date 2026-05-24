@@ -316,7 +316,7 @@ export default function AttendancePage() {
                             </div>
                             {pct < 75 && (
                               <p className="text-red-400 text-xs mt-2">
-                                ⚠️ Needs {Math.ceil((0.75 * Number(studentDetail.summary.total_count) - Number(studentDetail.summary.present_count)) / 0.25)} more classes to reach 75%
+                                ⚠️ Needs {Math.ceil(Math.max(0, (0.75 * Number(studentDetail.summary.total_count) - Number(studentDetail.summary.present_count)) / 0.25))} more classes to reach 75%
                               </p>
                             )}
                           </div>
