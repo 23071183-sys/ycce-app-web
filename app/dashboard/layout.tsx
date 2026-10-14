@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { getToken, getUser, clearToken } from '@/lib/auth';
 import {
   LayoutDashboard, Users, Megaphone, BarChart2,
-  Clock, GraduationCap, LogOut, Menu, ClipboardList, Sun, Moon, FileText, MessageCircle
+  Clock, GraduationCap, LogOut, Menu, ClipboardList, Sun, Moon, FileText, MessageCircle, PenSquare
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTheme } from 'next-themes';
@@ -18,6 +18,7 @@ const NAV = [
   { href: '/dashboard/announcements', label: 'Announcements', icon: Megaphone, subtitle: 'Post & manage notices' },
   { href: '/dashboard/attendance', label: 'Attendance', icon: ClipboardList, subtitle: 'Mark & view attendance' },
   { href: '/dashboard/results', label: 'Results', icon: BarChart2, subtitle: 'SGPA / CGPA records' },
+  { href: '/dashboard/marks', label: 'Marks Entry', icon: PenSquare, subtitle: 'MSE / TA / ESE per subject' },
   { href: '/dashboard/assignments', label: 'Assignments', icon: FileText, subtitle: 'Manage assignments' },
   { href: '/dashboard/timetable', label: 'Timetable', icon: Clock, subtitle: 'Class schedule' },
   { href: '/dashboard/faculty', label: 'Faculty', icon: GraduationCap, subtitle: 'Staff directory' },
