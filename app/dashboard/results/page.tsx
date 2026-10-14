@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Loader2, Pencil, BarChart2 } from 'lucide-react';
-import { isSuperAdmin } from '@/lib/auth';
+import { useCurrentUser } from '@/lib/auth';
 
 type SGPARow = {
   id: number; student_id: number; student_name: string; roll_number: string;
@@ -46,6 +46,7 @@ type StudentCGPA = {
 export default function ResultsPage() {
   const [results, setResults] = useState<SGPARow[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const { isSuperAdmin } = useCurrentUser();
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -172,7 +173,7 @@ export default function ResultsPage() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-light tracking-widest uppercase text-foreground">Results</h1>
-        {isSuperAdmin() && (
+        {isSuperAdmin && (
           <button
             onClick={openNew}
             className="flex items-center gap-1.5 bg-foreground text-background hover:bg-foreground/90 text-xs tracking-widest uppercase font-light px-4 py-2 rounded-md transition-colors"
@@ -316,7 +317,7 @@ export default function ResultsPage() {
                     <TableCell className={`text-sm font-medium ${sgpaColor(r.sgpa)}`}>{r.sgpa}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">{r.academic_year}</TableCell>
                     <TableCell>
-                      {isSuperAdmin() && (
+                      {isSuperAdmin && (
                         <button
                           onClick={() => openEdit(r)}
                           className="text-muted-foreground hover:text-foreground transition-colors"
