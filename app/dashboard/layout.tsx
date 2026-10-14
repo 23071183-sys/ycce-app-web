@@ -38,6 +38,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [open, setOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const { theme, setTheme } = useTheme();
+  // The active theme is only known in the browser, so the server markup cannot
+  // reflect it. Render the toggle's theme-dependent parts after mounting, or
+  // the first client render disagrees with the server and hydration fails.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!getToken()) { router.push('/login'); return; }
@@ -131,9 +136,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={mounted ? (theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode') : undefined}
+              suppressHydrationWarning
             >
-              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+              {mounted ? (theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />) : <Sun size={15} className="invisible" />}
             </button>
           </div>
         </div>
