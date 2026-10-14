@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { CheckCircle, XCircle, Loader2, Search, Users, Megaphone } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { isSuperAdmin, getUser } from '@/lib/auth';
+import { useCurrentUser } from '@/lib/auth';
 
 type User = {
   id: number; name: string; email: string; role: string;
@@ -27,8 +27,7 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [loadError, setLoadError] = useState('');
-  const canWrite = isSuperAdmin();
-  const canManageStaff = ['super_admin', 'admin'].includes(getUser()?.role);
+  const { isSuperAdmin: canWrite, isAdmin: canManageStaff } = useCurrentUser();
 
   const load = async () => {
     setLoading(true);

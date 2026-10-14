@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { ArrowUp, Loader2, RefreshCw } from 'lucide-react';
 import api from '@/lib/api';
-import { getUser } from '@/lib/auth';
+import { useCurrentUser } from '@/lib/auth';
 
 const SUGGESTIONS = [
   'Show all professors and their subjects',
@@ -18,7 +18,7 @@ const SUGGESTIONS = [
 type Message = { role: 'user' | 'assistant'; content: string };
 
 export default function ChatPage() {
-  const user = getUser();
+  const { user } = useCurrentUser();
   const isAdmin = ['super_admin', 'admin'].includes(user?.role);
 
   const greeting = isAdmin

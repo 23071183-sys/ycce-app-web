@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Trash2, Loader2, Megaphone, CheckCircle } from 'lucide-react';
-import { isSuperAdmin, getUser } from '@/lib/auth';
+import { useCurrentUser } from '@/lib/auth';
 
 type Announcement = {
   id: number; title: string; content: string; type: string;
@@ -16,19 +16,12 @@ type Announcement = {
 };
 type Subject = { id: number; name: string; year: number };
 
-const isProfessor = () => getUser()?.role === 'professor';
-const isAdmin = () => ['super_admin', 'admin'].includes(getUser()?.role);
 
 const ALL_TYPES = [
   { value: 'general', label: 'General (All Years)' },
   { value: 'year_specific', label: 'Year Specific' },
   { value: 'subject_specific', label: 'Subject Specific' },
 ];
-
-const canPost = () => {
-  const u = getUser();
-  return ['super_admin', 'admin', 'professor'].includes(u?.role);
-};
 
 const MAX_CONTENT_LENGTH = 1000;
 
@@ -39,8 +32,9 @@ export default function AnnouncementsPage() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [role] = useState<string>(() => getUser()?.role || '');
-  const [type, setType] = useState(() => getUser()?.role === 'professor' ? 'subject_specific' : 'general');
+  const { role, isAdmin: userIsAdmin } = useCurrentUser();
+  const [type, setType] = useState('general');
+  useEffect(() => { if (role === 'professor') setType('subject_specific'); }, [role]);
   const [year, setYear] = useState('1');
   const [subjectId, setSubjectId] = useState('');
 
@@ -58,7 +52,7 @@ export default function AnnouncementsPage() {
     setLoadError('');
     try {
       let allItems: Announcement[] = [];
-      if (isAdmin()) {
+      if (userIsAdmin) {
         const r = await api.get('/announcements/all');
         allItems = r.data;
       } else {
@@ -270,7 +264,7 @@ export default function AnnouncementsPage() {
                     </p>
                   </div>
                 </div>
-                {isSuperAdmin() && (
+                {role === 'super_admin' && (
                   <button onClick={() => remove(a.id)} className="text-zinc-600 hover:text-red-400 transition-colors shrink-0 mt-0.5">
                     <Trash2 size={15} />
                   </button>
