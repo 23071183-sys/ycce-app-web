@@ -149,7 +149,11 @@ export default function ResultsPage() {
       if (!map.has(r.student_id)) {
         map.set(r.student_id, { student_name: r.student_name, roll_number: r.roll_number, sgpas: [] });
       }
-      map.get(r.student_id)!.sgpas.push(r.sgpa);
+      // sgpa is a Postgres numeric, which arrives as a string to keep its
+      // precision. Left as-is it would concatenate under reduce rather than
+      // add, so coerce here and drop anything that isn't a usable number.
+      const sgpa = Number(r.sgpa);
+      if (Number.isFinite(sgpa)) map.get(r.student_id)!.sgpas.push(sgpa);
     }
     return Array.from(map.entries())
       .map(([student_id, { student_name, roll_number, sgpas }]) => ({
@@ -157,7 +161,9 @@ export default function ResultsPage() {
         student_name,
         roll_number,
         semesters: sgpas.length,
-        cgpa: parseFloat((sgpas.reduce((a, b) => a + b, 0) / sgpas.length).toFixed(2)),
+        cgpa: sgpas.length
+          ? parseFloat((sgpas.reduce((a, b) => a + b, 0) / sgpas.length).toFixed(2))
+          : 0,
       }))
       .sort((a, b) => b.cgpa - a.cgpa);
   }, [results]);
