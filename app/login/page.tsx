@@ -26,7 +26,17 @@ export default function LoginPage() {
       setToken(data.token, data.user);
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Invalid credentials');
+      // Only a response from the server can tell us the sign-in was refused.
+      // Without one the request never arrived — the API is unreachable, asleep,
+      // or misconfigured — and calling that "invalid credentials" sends people
+      // off resetting a password that was never the problem.
+      if (err.response) {
+        setError(err.response.data?.error || 'Invalid credentials');
+      } else if (err.code === 'ECONNABORTED') {
+        setError('The server took too long to respond. It may be waking up — try again in a moment.');
+      } else {
+        setError(`Could not reach the server at ${api.defaults.baseURL}. Check your connection and try again.`);
+      }
     } finally {
       setLoading(false);
     }
