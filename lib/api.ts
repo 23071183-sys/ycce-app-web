@@ -1,9 +1,22 @@
 import axios from 'axios';
 
+const PRODUCTION_API = 'https://ycce-app-backend.onrender.com/api';
+
+// A NEXT_PUBLIC_API_URL left over from the old Railway host is still set in the
+// deployment's dashboard, where it overrides vercel.json and is baked into the
+// bundle at build time — every deployed sign-in was failing against a backend
+// that no longer exists. Production pins the known-good host so stale config
+// cannot point it at a dead one; local development still overrides freely
+// through .env.local. Delete that dashboard variable and this can go back to
+// reading the environment in both.
+const baseURL = process.env.NODE_ENV === 'development'
+  ? (process.env.NEXT_PUBLIC_API_URL || PRODUCTION_API)
+  : PRODUCTION_API;
+
 // The API host sleeps when idle and takes ~25s to answer the request that wakes
 // it, so there has to be a ceiling well above that rather than none at all.
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://ycce-app-backend.onrender.com/api',
+  baseURL,
   timeout: 40000,
 });
 
