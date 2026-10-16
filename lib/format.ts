@@ -62,6 +62,7 @@ export function paiseToRupees(paise: number | string | null | undefined): string
 // A DATE column arrives as an ISO timestamp; this gives the YYYY-MM-DD an
 // <input type="date"> wants, read in the viewer's own time zone.
 export function toDateInput(value: unknown): string {
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
   const d = value instanceof Date ? value : value ? new Date(value as string) : null;
   if (!d || Number.isNaN(d.getTime())) return '';
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
