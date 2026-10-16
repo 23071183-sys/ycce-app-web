@@ -2,14 +2,15 @@
 import { useEffect, useState, useCallback } from 'react';
 import api from '@/lib/api';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { FormField } from '@/components/shared/FormField';
 import { SelectField } from '@/components/shared/SelectField';
 import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { ClipboardList } from 'lucide-react';
+import { ClipboardList, QrCode } from 'lucide-react';
 import { MonthlyView } from './_components/MonthlyView';
 import { MarkAttendance } from './_components/MarkAttendance';
 import { SubjectReport } from './_components/SubjectReport';
@@ -158,7 +159,15 @@ export default function AttendancePage() {
 
   return (
     <div>
-      <PageHeader title="Attendance" description="Mark a day's attendance or review a subject's record" />
+      <PageHeader
+        title="Attendance"
+        description="Mark a day's attendance or review a subject's record"
+        actions={
+          <Link href="/dashboard/attendance/qr" className={buttonVariants({ variant: 'outline' })}>
+            <QrCode /> QR attendance
+          </Link>
+        }
+      />
 
       {error && <ErrorBanner title={error.title} onRetry={error.retry} />}
 
