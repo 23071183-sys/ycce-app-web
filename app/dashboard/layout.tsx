@@ -2,10 +2,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { getToken, getUser, clearToken, updateStoredUser, USER_UPDATED_EVENT } from '@/lib/auth';
+import { getToken, getUser, clearToken, updateStoredUser, useCurrentUser, USER_UPDATED_EVENT } from '@/lib/auth';
 import {
   LayoutDashboard, Users, Megaphone, BarChart2,
-  Clock, GraduationCap, LogOut, Menu, ClipboardList, FileText, MessageCircle, PenSquare, Settings, MessagesSquare
+  Clock, GraduationCap, LogOut, Menu, ClipboardList, FileText, MessageCircle, PenSquare, Settings, MessagesSquare, IndianRupee
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,7 @@ const NAV = [
   { href: '/dashboard/marks', label: 'Marks Entry', icon: PenSquare, subtitle: 'MSE / TA / ESE per subject' },
   { href: '/dashboard/assignments', label: 'Assignments', icon: FileText, subtitle: 'Manage assignments' },
   { href: '/dashboard/timetable', label: 'Timetable', icon: Clock, subtitle: 'Class schedule' },
+  { href: '/dashboard/fees', label: 'Fees', icon: IndianRupee, subtitle: 'Fee structures & collection', adminOnly: true },
   { href: '/dashboard/faculty', label: 'Faculty', icon: GraduationCap, subtitle: 'Staff directory' },
   { href: '/dashboard/messages', label: 'Messages', icon: MessagesSquare, subtitle: 'Direct messages with students' },
   { href: '/dashboard/chat', label: 'AI Assistant', icon: MessageCircle, subtitle: 'Ask anything about the system' },
@@ -46,6 +47,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [open, setOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
+  // Role-gated links wait for the browser session, so server and first client
+  // render agree.
+  const { isAdmin } = useCurrentUser();
 
   useEffect(() => {
     if (!getToken()) { router.push('/login'); return; }
@@ -118,7 +122,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {NAV.map(({ href, label, icon: Icon, subtitle }) => {
+          {NAV.filter(item => !('adminOnly' in item && item.adminOnly) || isAdmin).map(({ href, label, icon: Icon, subtitle }) => {
             // Overview is the parent of every page, so it only matches exactly;
             // other items stay highlighted on their own sub-pages too.
             const active = pathname === href ||
