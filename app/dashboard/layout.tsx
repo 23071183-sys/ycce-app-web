@@ -51,7 +51,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // Fetch pending approval count
     api.get('/admin/stats')
       .then(r => setPendingCount(r.data?.pending ?? 0))
-      .catch(() => {});
+      // The badge is optional, but a failure here usually means the API is
+      // unreachable, which the console should show rather than hide.
+      .catch(err => console.warn('Could not load pending approvals count:', err?.message));
   }, []);
 
   const logout = () => {
@@ -86,7 +88,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {NAV.map(({ href, label, icon: Icon, subtitle }) => {
-            const active = pathname === href;
+            // Overview is the parent of every page, so it only matches exactly;
+            // other items stay highlighted on their own sub-pages too.
+            const active = pathname === href ||
+              (href !== '/dashboard' && pathname.startsWith(href + '/'));
             const isUsers = href === '/dashboard/users';
             return (
               <Link
@@ -159,7 +164,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
-      <ChatWidget />
+      {/* The chat page is the assistant itself; a floating copy would duplicate it. */}
+      {pathname !== '/dashboard/chat' && <ChatWidget />}
     </div>
   );
 }
