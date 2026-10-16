@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { getToken, getUser, clearToken } from '@/lib/auth';
 import {
   LayoutDashboard, Users, Megaphone, BarChart2,
-  Clock, GraduationCap, LogOut, Menu, ClipboardList, Sun, Moon, FileText, MessageCircle, PenSquare
+  Clock, GraduationCap, LogOut, Menu, ClipboardList, FileText, MessageCircle, PenSquare
 } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useTheme } from 'next-themes';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
+import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import ChatWidget from '@/components/ChatWidget';
 
@@ -38,12 +40,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [user, setUser] = useState<any>(null);
   const [open, setOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
-  const { theme, setTheme } = useTheme();
-  // The active theme is only known in the browser, so the server markup cannot
-  // reflect it. Render the toggle's theme-dependent parts after mounting, or
-  // the first client render disagrees with the server and hydration fails.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!getToken()) { router.push('/login'); return; }
@@ -64,7 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-background text-foreground flex">
       {open && (
-        <div className="fixed inset-0 bg-black/60 z-20 lg:hidden" onClick={() => setOpen(false)} />
+        <div className="fixed inset-0 bg-foreground/40 backdrop-blur-[1px] z-20 lg:hidden" onClick={() => setOpen(false)} />
       )}
 
       {/* Sidebar */}
@@ -74,19 +70,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         ${open ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:static lg:z-auto
       `}>
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="border border-foreground rounded px-2.5 py-1">
-              <span className="text-foreground text-xs font-bold tracking-widest">YCCE</span>
-            </div>
-            <div className="border border-foreground rounded px-2.5 py-1">
-              <span className="text-foreground text-xs font-bold tracking-widest">CT</span>
-            </div>
+        <div className="px-6 py-5 border-b border-border">
+          <div className="flex items-center gap-2">
+            <span className="rounded-md border border-foreground px-2 py-0.5 text-xs font-semibold tracking-widest text-foreground">YCCE</span>
+            <span className="rounded-md border border-foreground px-2 py-0.5 text-xs font-semibold tracking-widest text-foreground">CT</span>
           </div>
-          <p className="text-muted-foreground text-xs tracking-widest uppercase mt-3">Admin Portal</p>
+          <p className="label mt-3">Admin Portal</p>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {NAV.map(({ href, label, icon: Icon, subtitle }) => {
             // Overview is the parent of every page, so it only matches exactly;
             // other items stay highlighted on their own sub-pages too.
@@ -99,18 +91,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 href={href}
                 onClick={() => setOpen(false)}
                 title={subtitle}
-                className={`group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                aria-current={active ? 'page' : undefined}
+                className={cn(
+                  'group flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                   active
-                    ? 'bg-foreground text-background font-medium'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
+                    ? 'bg-primary-soft text-primary font-medium'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent',
+                )}
               >
                 <Icon size={16} className="shrink-0" />
-                <span className="tracking-wide flex-1">{label}</span>
+                <span className="flex-1">{label}</span>
                 {isUsers && pendingCount > 0 && (
-                  <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center leading-none ${
-                    active ? 'bg-red-500 text-white' : 'bg-red-600 text-white'
-                  }`}>
+                  <span className="min-w-5 rounded-full bg-destructive px-1.5 py-0.5 text-center text-[11px] font-semibold leading-none text-primary-foreground tabular-nums">
                     {pendingCount}
                   </span>
                 )}
@@ -122,9 +114,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="p-4 border-t border-border">
           {user && (
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center shrink-0">
-                <span className="text-xs font-semibold text-zinc-200">{getInitials(user.name)}</span>
-              </div>
+              <Avatar>
+                <AvatarFallback className="text-xs font-medium text-foreground">{getInitials(user.name)}</AvatarFallback>
+              </Avatar>
               <div className="min-w-0">
                 <p className="text-foreground text-xs font-medium truncate">{user.name}</p>
                 <p className="text-muted-foreground text-xs truncate capitalize">{user.role === 'super_admin' ? 'Admin' : user.role}</p>
@@ -132,21 +124,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           )}
           <div className="flex items-center justify-between">
-            <button
-              onClick={logout}
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground text-sm transition-colors"
-            >
-              <LogOut size={15} />
-              <span className="tracking-wide">Sign Out</span>
-            </button>
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              title={mounted ? (theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode') : undefined}
-              suppressHydrationWarning
-            >
-              {mounted ? (theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />) : <Sun size={15} className="invisible" />}
-            </button>
+            <Button variant="ghost" size="sm" onClick={logout} className="-ml-2 text-muted-foreground">
+              <LogOut />
+              Sign Out
+            </Button>
+            <ThemeToggle />
           </div>
         </div>
       </aside>
@@ -154,13 +136,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card">
-          <button onClick={() => setOpen(true)}>
-            <Menu size={20} className="text-foreground" />
-          </button>
-          <span className="text-foreground text-sm tracking-widest uppercase">Admin</span>
-          <div />
+          <Button variant="ghost" size="icon" onClick={() => setOpen(true)} aria-label="Open menu">
+            <Menu className="size-5" />
+          </Button>
+          <span className="label text-foreground">Admin</span>
+          <div className="size-8" />
         </header>
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
           {children}
         </main>
       </div>

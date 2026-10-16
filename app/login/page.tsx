@@ -3,7 +3,17 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { setToken } from '@/lib/auth';
-import { Eye, EyeOff, ShieldCheck, GraduationCap, Users, BarChart2, Megaphone } from 'lucide-react';
+import { Eye, EyeOff, ShieldCheck, GraduationCap, Users, BarChart2, Megaphone, CircleAlert, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { FormField } from '@/components/shared/FormField';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
+
+// The page is prerendered at build time; if the year has rolled over since,
+// the footer text differs from the server copy, which suppressHydrationWarning
+// on that one element accepts.
+const YEAR = new Date().getFullYear();
 
 export default function LoginPage() {
   const router = useRouter();
@@ -50,44 +60,42 @@ export default function LoginPage() {
   ];
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-background text-foreground">
       {/* Left panel — branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-zinc-950 border-r border-zinc-800 flex-col justify-between p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-card border-r border-border flex-col justify-between p-12 relative overflow-hidden">
         {/* Background grid */}
-        <div className="absolute inset-0 opacity-5"
-          style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+        <div
+          className="absolute inset-0 opacity-[0.04] text-foreground"
+          style={{ backgroundImage: 'linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)', backgroundSize: '40px 40px' }}
+        />
 
         {/* Top badges */}
         <div className="flex items-center gap-3 relative z-10">
-          <div className="border border-zinc-700 rounded-md px-4 py-2">
-            <span className="text-zinc-100 text-sm font-bold tracking-widest">YCCE</span>
-          </div>
-          <div className="w-px h-6 bg-zinc-800" />
-          <div className="border border-zinc-700 rounded-md px-4 py-2">
-            <span className="text-zinc-100 text-sm font-bold tracking-widest">CT</span>
-          </div>
-          <span className="text-zinc-600 text-xs tracking-widest uppercase ml-1">Admin Portal</span>
+          <span className="rounded-md border border-foreground px-3 py-1.5 text-sm font-semibold tracking-widest">YCCE</span>
+          <span className="h-6 w-px bg-border" />
+          <span className="rounded-md border border-foreground px-3 py-1.5 text-sm font-semibold tracking-widest">CT</span>
+          <span className="label ml-1">Admin Portal</span>
         </div>
 
         {/* Center content */}
         <div className="relative z-10">
-          <h1 className="text-5xl font-extralight text-white tracking-tight mb-3 leading-tight">
+          <h1 className="text-5xl font-extralight tracking-tight mb-3 leading-tight">
             Computer<br />Technology<br />
-            <span className="text-zinc-500">Department</span>
+            <span className="text-muted-foreground">Department</span>
           </h1>
-          <p className="text-zinc-500 text-sm tracking-wide mt-4 mb-12 leading-relaxed max-w-xs">
+          <p className="text-muted-foreground text-sm mt-4 mb-12 leading-relaxed max-w-xs">
             Yashwantrao Chavan College of Engineering, Nagpur — unified admin platform for faculty and administrators.
           </p>
 
           <div className="space-y-4">
             {features.map(({ icon: Icon, label, desc }) => (
               <div key={label} className="flex items-start gap-4">
-                <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
-                  <Icon size={14} className="text-zinc-400" />
+                <div className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center shrink-0 mt-0.5">
+                  <Icon size={14} className="text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-zinc-200 text-sm font-medium">{label}</p>
-                  <p className="text-zinc-600 text-xs mt-0.5">{desc}</p>
+                  <p className="text-sm font-medium">{label}</p>
+                  <p className="text-muted-foreground text-xs mt-0.5">{desc}</p>
                 </div>
               </div>
             ))}
@@ -95,90 +103,84 @@ export default function LoginPage() {
         </div>
 
         {/* Bottom */}
-        <p className="text-zinc-700 text-xs tracking-widest uppercase relative z-10">
-          © 2025 YCCE — Computer Technology
-        </p>
+        <p className="label relative z-10" suppressHydrationWarning>© {YEAR} YCCE — Computer Technology</p>
       </div>
 
       {/* Right panel — login form */}
-      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-background">
-        {/* Mobile logo */}
-        <div className="flex items-center gap-3 mb-10 lg:hidden">
-          <div className="border border-border rounded-md px-4 py-2">
-            <span className="text-foreground text-sm font-bold tracking-widest">YCCE</span>
-          </div>
-          <div className="border border-border rounded-md px-4 py-2">
-            <span className="text-foreground text-sm font-bold tracking-widest">CT</span>
-          </div>
+      <div className="relative flex-1 flex flex-col items-center justify-center p-6 sm:p-8">
+        <div className="absolute right-4 top-4">
+          <ThemeToggle />
         </div>
 
-        <div className="w-full max-w-sm">
-          <div className="mb-8">
-            <h2 className="text-2xl font-light text-foreground tracking-wide">Welcome back</h2>
-            <p className="text-muted-foreground text-sm mt-1.5">Sign in to your admin account</p>
-          </div>
+        {/* Mobile logo */}
+        <div className="flex items-center gap-3 mb-10 lg:hidden">
+          <span className="rounded-md border border-foreground px-3 py-1.5 text-sm font-semibold tracking-widest">YCCE</span>
+          <span className="rounded-md border border-foreground px-3 py-1.5 text-sm font-semibold tracking-widest">CT</span>
+        </div>
 
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground tracking-widest uppercase">Email</label>
-              <input
-                type="email"
-                placeholder="admin@ycce.edu"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                className="w-full bg-card border border-border rounded-lg px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-foreground transition-colors"
-              />
+        <Card className="w-full max-w-sm">
+          <CardContent className="py-4">
+            <div className="mb-8">
+              <h2 className="text-2xl font-light tracking-wide">Welcome back</h2>
+              <p className="text-muted-foreground text-sm mt-1.5">Sign in to your admin account</p>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs text-muted-foreground tracking-widest uppercase">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
+            <form onSubmit={handleLogin} className="space-y-5">
+              <FormField label="Email" htmlFor="login-email">
+                <Input
+                  id="login-email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="admin@ycce.edu"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
                   required
-                  className="w-full bg-card border border-border rounded-lg px-4 py-3 pr-11 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-foreground transition-colors"
+                  className="h-10"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
+              </FormField>
 
-            {error && (
-              <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-red-500/10 border border-red-500/20">
-                <div className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
-                <p className="text-red-400 text-sm">{error}</p>
-              </div>
-            )}
+              <FormField label="Password" htmlFor="login-password">
+                <div className="relative">
+                  <Input
+                    id="login-password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    required
+                    className="h-10 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </FormField>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-foreground text-background rounded-lg py-3 text-sm font-medium tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                </svg>
-              ) : null}
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
+              {error && (
+                <div role="alert" className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive-soft px-3 py-2.5 text-sm text-destructive">
+                  <CircleAlert size={16} className="mt-0.5 shrink-0" />
+                  <p>{error}</p>
+                </div>
+              )}
 
-          <div className="flex items-center justify-center gap-1.5 mt-8">
-            <ShieldCheck size={12} className="text-muted-foreground/50" />
-            <p className="text-muted-foreground/50 text-xs tracking-wider">Admin & Professor access only</p>
-          </div>
+              <Button type="submit" disabled={loading} className="h-10 w-full">
+                {loading ? <Loader2 className="animate-spin" /> : null}
+                {loading ? 'Signing in...' : 'Sign In'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <div className="flex items-center justify-center gap-1.5 mt-8 text-muted-foreground">
+          <ShieldCheck size={12} />
+          <p className="text-xs tracking-wider">Admin & Professor access only</p>
         </div>
       </div>
     </div>
