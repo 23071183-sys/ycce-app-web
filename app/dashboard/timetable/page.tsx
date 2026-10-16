@@ -3,9 +3,15 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Trash2, Loader2, Clock } from 'lucide-react';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { FormField } from '@/components/shared/FormField';
+import { SelectField } from '@/components/shared/SelectField';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
+import { EmptyState } from '@/components/shared/EmptyState';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -79,116 +85,110 @@ export default function TimetablePage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-light tracking-widest uppercase text-foreground">Timetable</h1>
-        <Dialog open={open} onOpenChange={v => { setOpen(v); setError(''); }}>
-          <DialogTrigger className="flex items-center gap-1.5 bg-foreground text-background hover:bg-foreground/90 text-xs tracking-widest uppercase font-light px-4 py-2 rounded-md transition-colors">
-            <Plus size={14} /> Add Lecture
-          </DialogTrigger>
-          <DialogContent className="bg-card border-border text-foreground">
-            <DialogHeader>
-              <DialogTitle className="text-foreground font-light tracking-widest uppercase">
-                Add Lecture — Year {year}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-2">
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs tracking-widest uppercase">Subject Name</Label>
-                <input
-                  value={form.custom_subject_name}
-                  onChange={e => set('custom_subject_name', e.target.value)}
-                  placeholder="e.g. Data Structures, DBMS, Mathematics..."
-                  className="w-full bg-muted border border-border text-foreground rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-600 placeholder:text-muted-foreground"
-                />
+      <PageHeader
+        title="Timetable"
+        description="The weekly lecture schedule for each year"
+        actions={
+          <Dialog open={open} onOpenChange={v => { setOpen(v); setError(''); }}>
+            <DialogTrigger render={<Button />}>
+              <Plus /> Add Lecture
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add Lecture — Year {year}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <FormField label="Subject Name" htmlFor="tt-subject">
+                  <Input
+                    id="tt-subject"
+                    value={form.custom_subject_name}
+                    onChange={e => set('custom_subject_name', e.target.value)}
+                    placeholder="e.g. Data Structures, DBMS, Mathematics..."
+                  />
+                </FormField>
+                <FormField label="Day" htmlFor="tt-day">
+                  <SelectField
+                    id="tt-day"
+                    value={form.day}
+                    onValueChange={v => set('day', v)}
+                    options={DAYS.map(d => ({ value: d, label: d }))}
+                  />
+                </FormField>
+                <div className="grid grid-cols-2 gap-3">
+                  {[{ label: 'Start Time', key: 'start_time' }, { label: 'End Time', key: 'end_time' }].map(({ label, key }) => (
+                    <FormField key={key} label={label} htmlFor={`tt-${key}`} hint={(form as any)[key] || 'Not set'}>
+                      <Input
+                        id={`tt-${key}`}
+                        type="time"
+                        value={(form as any)[key]}
+                        onChange={e => set(key, e.target.value)}
+                        onBlur={e => { if (!e.target.value) set(key, key === 'start_time' ? '09:00' : '10:00'); }}
+                        className="dark:[color-scheme:dark]"
+                      />
+                    </FormField>
+                  ))}
+                </div>
+                <FormField label="Room (optional)" htmlFor="tt-room">
+                  <Input id="tt-room" value={form.room} onChange={e => set('room', e.target.value)} placeholder="e.g. CT-301" />
+                </FormField>
+                {error && <p className="text-destructive text-sm">{error}</p>}
+                <Button onClick={create} disabled={saving} className="w-full">
+                  {saving ? <Loader2 className="animate-spin" /> : null}
+                  {saving ? 'Saving...' : 'Add Lecture'}
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs tracking-widest uppercase">Day</Label>
-                <select value={form.day} onChange={e => set('day', e.target.value)}
-                  className="w-full bg-muted border border-border text-foreground rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-600">
-                  {DAYS.map(d => <option key={d}>{d}</option>)}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                {[{ label: 'Start Time', key: 'start_time' }, { label: 'End Time', key: 'end_time' }].map(({ label, key }) => (
-                  <div key={key} className="space-y-2">
-                    <Label className="text-muted-foreground text-xs tracking-widest uppercase">{label}</Label>
-                    <input
-                      type="time"
-                      value={(form as any)[key]}
-                      onChange={e => set(key, e.target.value)}
-                      onBlur={e => { if (!e.target.value) set(key, key === 'start_time' ? '09:00' : '10:00'); }}
-                      className="w-full bg-muted border border-border text-foreground rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-600 [color-scheme:dark]"
-                    />
-                    <p className="text-zinc-600 text-xs">{(form as any)[key] || 'Not set'}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs tracking-widest uppercase">Room (optional)</Label>
-                <input value={form.room} onChange={e => set('room', e.target.value)}
-                  placeholder="e.g. CT-301"
-                  className="w-full bg-muted border border-border text-foreground rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-600 placeholder:text-muted-foreground" />
-              </div>
-              {error && <p className="text-red-400 text-sm">{error}</p>}
-              <Button onClick={create} disabled={saving}
-                className="w-full bg-foreground text-background hover:bg-foreground/90 font-light tracking-widest uppercase text-sm">
-                {saving ? <Loader2 size={14} className="animate-spin mr-2" /> : null}
-                {saving ? 'Saving...' : 'Add Lecture'}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+            </DialogContent>
+          </Dialog>
+        }
+      />
 
       {error && !open && (
-        <div className="mb-4 px-4 py-3 rounded-lg bg-red-900/30 border border-red-800 text-red-300 text-sm tracking-wide">
-          {error}
-        </div>
+        <ErrorBanner title="Something went wrong" message={error} onRetry={() => loadTimetable(year)} />
       )}
 
-      <div className="flex gap-2 mb-6">
-        {['1', '2', '3', '4'].map(y => (
-          <button key={y} onClick={() => setYear(y)}
-            className={`px-4 py-1.5 rounded-md text-sm border transition-colors ${
-              year === y
-                ? 'bg-foreground text-background border-foreground'
-                : 'border-border text-muted-foreground hover:text-foreground hover:border-border'
-            }`}>
-            Year {y}
-          </button>
-        ))}
-      </div>
+      <Tabs value={year} onValueChange={v => setYear(String(v))} className="mb-6">
+        <TabsList>
+          {['1', '2', '3', '4'].map(y => (
+            <TabsTrigger key={y} value={y} className="px-3">Year {y}</TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       {loading ? (
         <div className="flex justify-center py-16"><Loader2 className="animate-spin text-muted-foreground" /></div>
       ) : (
         <div className="space-y-4">
           {byDay.map(({ day, lectures }) => lectures.length > 0 && (
-            <Card key={day} className="bg-card border-border">
-              <CardContent className="py-4">
-                <p className="text-muted-foreground text-xs tracking-widest uppercase mb-3">{day}</p>
+            <Card key={day}>
+              <CardContent>
+                <p className="label mb-3">{day}</p>
                 <div className="space-y-2">
                   {lectures.map(l => (
                     <div key={l.id} className="flex items-center justify-between group">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="flex items-center gap-1 text-zinc-600 text-xs w-28 shrink-0">
+                        <div className="flex items-center gap-1 text-muted-foreground text-xs w-28 shrink-0 tabular-nums">
                           <Clock size={11} />
                           <span>{l.start_time} – {l.end_time}</span>
                         </div>
                         <div className="min-w-0">
                           <span className="text-foreground text-sm">{l.subject_name}</span>
                           {l.professor_name && (
-                            <span className="text-zinc-500 text-xs ml-2">· {l.professor_name}</span>
+                            <span className="text-muted-foreground text-xs ml-2">· {l.professor_name}</span>
                           )}
                           {l.room && (
-                            <span className="text-zinc-600 text-xs ml-2">· {l.room}</span>
+                            <span className="text-muted-foreground text-xs ml-2">· {l.room}</span>
                           )}
                         </div>
                       </div>
-                      <button onClick={() => remove(l.id)}
-                        className="text-zinc-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 shrink-0 ml-4">
-                        <Trash2 size={13} />
-                      </button>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => remove(l.id)}
+                        aria-label={`Delete ${l.subject_name}`}
+                        className="ml-4 shrink-0 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                      >
+                        <Trash2 />
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -196,10 +196,8 @@ export default function TimetablePage() {
             </Card>
           ))}
           {items.length === 0 && (
-            <Card className="bg-card border-border">
-              <CardContent className="py-16 text-center text-muted-foreground tracking-wider uppercase text-sm">
-                No lectures for Year {year}
-              </CardContent>
+            <Card>
+              <EmptyState icon={<Clock size={28} strokeWidth={1.5} />} title={`No lectures for Year ${year}`} />
             </Card>
           )}
         </div>
