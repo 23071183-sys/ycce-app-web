@@ -5,9 +5,14 @@ import { useCurrentUser } from '@/lib/auth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Save, Check } from 'lucide-react';
+import { Loader2, Save, Check, CircleAlert } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { FormField } from '@/components/shared/FormField';
+import { SelectField } from '@/components/shared/SelectField';
+import { EmptyState } from '@/components/shared/EmptyState';
 
 type Subject = { id: number; name: string; code: string; year: number; professor_name?: string };
 type Component = { key: string; label: string; max: number };
@@ -171,92 +176,85 @@ export default function MarksPage() {
 
   if (!isAdmin && !isProfessor) {
     return (
-      <p className="text-muted-foreground text-sm">
-        Only teaching staff and administrators can enter marks.
-      </p>
+      <EmptyState title="Marks entry is for staff" message="Only teaching staff and administrators can enter marks." />
     );
   }
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-light tracking-widest uppercase text-foreground">Marks Entry</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          {components.length
-            ? components.map(c => `${c.label} ${c.max}`).join(' + ') + ` = ${maxTotal}` +
-              (reMse ? ` · ${reMse.label} replaces a missed MSE` : '')
-            : 'Select a subject and semester to begin.'}
-        </p>
-      </div>
+      <PageHeader
+        title="Marks Entry"
+        description={components.length
+          ? components.map(c => `${c.label} ${c.max}`).join(' + ') + ` = ${maxTotal}` +
+            (reMse ? ` · ${reMse.label} replaces a missed MSE` : '')
+          : 'Select a subject and semester to begin.'}
+      />
 
-      <Card className="bg-card border-border mb-6">
-        <CardContent className="pt-6 grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label className="text-muted-foreground text-xs tracking-widest uppercase">Subject</Label>
-            <select
+      <Card className="mb-6">
+        <CardContent className="grid gap-4 sm:grid-cols-3">
+          <FormField label="Subject" htmlFor="marks-subject">
+            <SelectField
+              id="marks-subject"
               value={subjectId}
-              onChange={e => setSubjectId(e.target.value)}
-              className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground"
-            >
-              <option value="">Select subject…</option>
-              {subjects.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.code ? `${s.code} — ` : ''}{s.name} (Year {s.year})
-                </option>
-              ))}
-            </select>
-          </div>
+              onValueChange={setSubjectId}
+              placeholder="Select subject…"
+              options={subjects.map(s => ({
+                value: String(s.id),
+                label: `${s.code ? `${s.code} — ` : ''}${s.name} (Year ${s.year})`,
+              }))}
+            />
+          </FormField>
 
-          <div className="space-y-2">
-            <Label className="text-muted-foreground text-xs tracking-widest uppercase">Semester</Label>
-            <select
+          <FormField label="Semester" htmlFor="marks-semester">
+            <SelectField
+              id="marks-semester"
               value={semester}
-              onChange={e => setSemester(e.target.value)}
-              className="w-full bg-background border border-border rounded-md px-3 py-2 text-sm text-foreground"
-            >
-              <option value="">Select semester…</option>
-              {SEMESTERS.map(s => <option key={s} value={s}>Semester {s}</option>)}
-            </select>
-          </div>
+              onValueChange={setSemester}
+              placeholder="Select semester…"
+              options={SEMESTERS.map(n => ({ value: String(n), label: `Semester ${n}` }))}
+            />
+          </FormField>
 
-          <div className="space-y-2">
-            <Label className="text-muted-foreground text-xs tracking-widest uppercase">Academic Year</Label>
+          <FormField label="Academic Year" htmlFor="marks-ay">
             <Input
+              id="marks-ay"
               value={academicYear}
               onChange={e => setAcademicYear(e.target.value)}
               placeholder="2026-27"
-              className="bg-background border-border text-foreground"
             />
-          </div>
+          </FormField>
         </CardContent>
       </Card>
 
       {error && (
-        <p className="text-red-400 text-sm mb-4">{error}</p>
+        <p role="alert" className="mb-4 flex items-center gap-2 text-sm text-destructive">
+          <CircleAlert size={14} className="shrink-0" />
+          {error}
+        </p>
       )}
 
       {loadingSheet && <Skeleton className="h-64 w-full" />}
 
       {!loadingSheet && rows.length > 0 && (
-        <Card className="bg-card border-border">
-          <CardContent className="pt-6">
+        <Card>
+          <CardContent>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-border">
-                    <TableHead className="text-muted-foreground text-xs tracking-widest uppercase">Roll No</TableHead>
-                    <TableHead className="text-muted-foreground text-xs tracking-widest uppercase">Student</TableHead>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="label">Roll No</TableHead>
+                    <TableHead className="label">Student</TableHead>
                     {components.map(c => (
-                      <TableHead key={c.key} className="text-muted-foreground text-xs tracking-widest uppercase text-center">
+                      <TableHead key={c.key} className="label text-center">
                         {c.label}<span className="normal-case tracking-normal opacity-60"> /{c.max}</span>
                       </TableHead>
                     ))}
                     {reMse && (
-                      <TableHead className="text-muted-foreground text-xs tracking-widest uppercase text-center">
+                      <TableHead className="label text-center">
                         {reMse.label}<span className="normal-case tracking-normal opacity-60"> /{reMse.max}</span>
                       </TableHead>
                     )}
-                    <TableHead className="text-muted-foreground text-xs tracking-widest uppercase text-center">
+                    <TableHead className="label text-center">
                       Total<span className="normal-case tracking-normal opacity-60"> /{maxTotal}</span>
                     </TableHead>
                   </TableRow>
@@ -265,13 +263,15 @@ export default function MarksPage() {
                   {rows.map(r => {
                     const total = rowTotal(r);
                     return (
-                      <TableRow key={r.student_id} className="border-border hover:bg-muted">
+                      <TableRow key={r.student_id}>
                         <TableCell className="text-muted-foreground text-sm">{r.roll_number}</TableCell>
                         <TableCell className="text-foreground text-sm">{r.student_name}</TableCell>
                         {components.map(c => {
                           // The MSE that RE-MSE is standing in for: shown greyed so
                           // it's clear which slot the substitute fills.
                           const replaced = c.key === replacedKey(r);
+                          const value = (r as any)[c.key];
+                          const invalid = isOver(r, c) || (replaced && value !== '');
                           return (
                             <TableCell key={c.key} className="text-center">
                               <Input
@@ -279,15 +279,16 @@ export default function MarksPage() {
                                 min={0}
                                 max={c.max}
                                 inputMode="numeric"
-                                value={(r as any)[c.key]}
+                                value={value}
                                 placeholder={replaced ? 'RE' : undefined}
                                 title={replaced ? `Filled by ${reMse?.label}` : undefined}
                                 onChange={e => setMark(r.student_id, c.key, e.target.value)}
-                                className={`w-16 mx-auto text-center bg-background text-foreground ${
-                                  isOver(r, c) || (replaced && (r as any)[c.key] !== '')
-                                    ? 'border-destructive'
-                                    : 'border-border'
-                                } ${replaced ? 'opacity-50' : ''}`}
+                                aria-invalid={invalid || undefined}
+                                className={cn(
+                                  'w-16 mx-auto text-center tabular-nums',
+                                  invalid && 'border-destructive',
+                                  replaced && 'opacity-50 bg-muted',
+                                )}
                               />
                             </TableCell>
                           );
@@ -302,21 +303,22 @@ export default function MarksPage() {
                                 inputMode="numeric"
                                 value={r.re_mse_marks}
                                 onChange={e => setMark(r.student_id, 're_mse_marks', e.target.value)}
-                                className={`w-16 text-center bg-background text-foreground ${
-                                  reMseProblem(r) ? 'border-destructive' : 'border-border'
-                                }`}
+                                aria-invalid={reMseProblem(r) ? true : undefined}
+                                className={cn('w-16 text-center tabular-nums', reMseProblem(r) && 'border-destructive')}
                               />
                               {hasReMse(r) && (
-                                <select
+                                <SelectField
                                   aria-label="MSE this RE-MSE replaces"
+                                  size="sm"
                                   value={r.re_mse_for}
-                                  onChange={e => setMark(r.student_id, 're_mse_for', e.target.value)}
-                                  className="bg-background border border-border rounded-md px-1 py-0.5 text-xs text-foreground"
-                                >
-                                  <option value="">for…</option>
-                                  <option value="mse1">for MSE 1</option>
-                                  <option value="mse2">for MSE 2</option>
-                                </select>
+                                  onValueChange={v => setMark(r.student_id, 're_mse_for', v)}
+                                  className="w-auto text-xs"
+                                  options={[
+                                    { value: '', label: 'for…' },
+                                    { value: 'mse1', label: 'for MSE 1' },
+                                    { value: 'mse2', label: 'for MSE 2' },
+                                  ]}
+                                />
                               )}
                               {reMseProblem(r) && (
                                 <span className="text-destructive text-[11px]">{reMseProblem(r)}</span>
@@ -325,9 +327,9 @@ export default function MarksPage() {
                           </TableCell>
                         )}
                         <TableCell
-                          className={`text-center text-sm font-semibold ${
+                          className={`text-center text-sm font-semibold tabular-nums ${
                             total === 0 ? 'text-muted-foreground'
-                              : total >= 40 ? 'text-green-400' : 'text-red-400'
+                              : total >= 40 ? 'text-success' : 'text-destructive'
                           }`}
                         >
                           {total || '—'}
@@ -339,30 +341,26 @@ export default function MarksPage() {
               </Table>
             </div>
 
-            <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mt-6 pt-4 border-t border-border">
               <p className="text-muted-foreground text-xs">
                 {enteredCount} of {rows.length} students have marks entered
-                {hasErrors && <span className="text-red-400"> · some rows need fixing — see the red boxes</span>}
+                {hasErrors && <span className="text-destructive"> · some rows need fixing — see the red boxes</span>}
               </p>
-              <button
-                onClick={save}
-                disabled={saving || hasErrors}
-                className="flex items-center gap-1.5 bg-foreground text-background hover:bg-foreground/90 disabled:opacity-40 text-xs tracking-widest uppercase font-light px-4 py-2 rounded-md transition-colors"
-              >
-                {saving ? <Loader2 size={14} className="animate-spin" />
-                  : saved ? <Check size={14} />
-                  : <Save size={14} />}
+              <Button onClick={save} disabled={saving || hasErrors}>
+                {saving ? <Loader2 className="animate-spin" />
+                  : saved ? <Check />
+                  : <Save />}
                 {saving ? 'Saving' : saved ? 'Saved' : 'Save Marks'}
-              </button>
+              </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
       {!loadingSheet && subjectId && semester && rows.length === 0 && !error && (
-        <p className="text-muted-foreground text-sm">
-          No approved students found for this subject&apos;s year.
-        </p>
+        <Card>
+          <EmptyState title="No students" message="No approved students found for this subject's year." />
+        </Card>
       )}
     </div>
   );

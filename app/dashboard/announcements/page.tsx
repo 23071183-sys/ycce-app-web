@@ -5,10 +5,18 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Trash2, Loader2, Megaphone, CheckCircle } from 'lucide-react';
+import { Plus, Trash2, Loader2, Megaphone } from 'lucide-react';
 import { useCurrentUser } from '@/lib/auth';
+import { fmtDate } from '@/lib/format';
+import { toast } from 'sonner';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { FormField } from '@/components/shared/FormField';
+import { SelectField } from '@/components/shared/SelectField';
+import { StatusPill } from '@/components/shared/StatusPill';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
+import { EmptyState } from '@/components/shared/EmptyState';
 
 type Announcement = {
   id: number; title: string; content: string; type: string;
@@ -45,7 +53,6 @@ export default function AnnouncementsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -83,10 +90,7 @@ export default function AnnouncementsPage() {
 
   useEffect(() => { load(); }, []);
 
-  const showSuccess = (msg: string) => {
-    setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(''), 2000);
-  };
+  const showSuccess = (msg: string) => toast.success(msg);
 
   const create = async () => {
     if (!title.trim() || !content.trim()) { setError('Title and content are required'); return; }
@@ -122,99 +126,84 @@ export default function AnnouncementsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-light tracking-widest uppercase text-foreground">Announcements</h1>
-        {['super_admin', 'admin', 'professor'].includes(role) && (
-        <Dialog open={open} onOpenChange={v => { setOpen(v); setError(''); }}>
-          <DialogTrigger className="flex items-center gap-1.5 bg-foreground text-background hover:bg-foreground/90 text-xs tracking-widest uppercase font-light px-4 py-2 rounded-md transition-colors">
-            <Plus size={14} /> New
-          </DialogTrigger>
-          <DialogContent className="bg-card border-border text-foreground">
-            <DialogHeader>
-              <DialogTitle className="text-foreground font-light tracking-widest uppercase">New Announcement</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-2">
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs tracking-widest uppercase">Type</Label>
-                <select value={type} onChange={e => setType(e.target.value)}
-                  className="w-full bg-muted border border-border text-foreground rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-600">
-                  {availableTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
+      <PageHeader
+        title="Announcements"
+        description="Notices for every year, a single year, or one subject"
+        actions={['super_admin', 'admin', 'professor'].includes(role) && (
+          <Dialog open={open} onOpenChange={v => { setOpen(v); setError(''); }}>
+            <DialogTrigger render={<Button />}>
+              <Plus /> New
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>New Announcement</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <FormField label="Type" htmlFor="ann-type">
+                  <SelectField id="ann-type" value={type} onValueChange={setType} options={availableTypes} />
+                </FormField>
+                {type === 'year_specific' && (
+                  <FormField label="Year" htmlFor="ann-year">
+                    <SelectField
+                      id="ann-year"
+                      value={year}
+                      onValueChange={setYear}
+                      options={['1', '2', '3', '4'].map(y => ({ value: y, label: `Year ${y}` }))}
+                    />
+                  </FormField>
+                )}
+                {type === 'subject_specific' && (
+                  <FormField label="Subject" htmlFor="ann-subject">
+                    <SelectField
+                      id="ann-subject"
+                      value={subjectId}
+                      onValueChange={setSubjectId}
+                      placeholder="Select subject..."
+                      options={mySubjects.map(s => ({ value: String(s.id), label: `${s.name} (Year ${s.year})` }))}
+                    />
+                  </FormField>
+                )}
+                <FormField label="Title" htmlFor="ann-title">
+                  <Input id="ann-title" value={title} onChange={e => setTitle(e.target.value)} placeholder="Announcement title" />
+                </FormField>
+                <FormField label="Content" htmlFor="ann-content">
+                  <Textarea
+                    id="ann-content"
+                    value={content}
+                    onChange={e => setContent(e.target.value)}
+                    rows={4}
+                    maxLength={MAX_CONTENT_LENGTH}
+                    className="min-h-24 resize-none field-sizing-fixed"
+                    placeholder="Write the announcement..."
+                  />
+                  <p className={`text-xs text-right tabular-nums ${
+                    content.length >= MAX_CONTENT_LENGTH
+                      ? 'text-destructive'
+                      : content.length > MAX_CONTENT_LENGTH * 0.8
+                      ? 'text-warning'
+                      : 'text-muted-foreground'
+                  }`}>
+                    {content.length} / {MAX_CONTENT_LENGTH}
+                  </p>
+                </FormField>
+                {error && <p className="text-destructive text-sm">{error}</p>}
+                <Button onClick={create} disabled={saving} className="w-full">
+                  {saving ? <Loader2 className="animate-spin" /> : null}
+                  {saving ? 'Posting...' : 'Post Announcement'}
+                </Button>
               </div>
-              {type === 'year_specific' && (
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground text-xs tracking-widest uppercase">Year</Label>
-                  <select value={year} onChange={e => setYear(e.target.value)}
-                    className="w-full bg-muted border border-border text-foreground rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-600">
-                    {['1','2','3','4'].map(y => <option key={y} value={y}>Year {y}</option>)}
-                  </select>
-                </div>
-              )}
-              {type === 'subject_specific' && (
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground text-xs tracking-widest uppercase">Subject</Label>
-                  <select value={subjectId} onChange={e => setSubjectId(e.target.value)}
-                    className="w-full bg-muted border border-border text-foreground rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-600">
-                    <option value="">Select subject...</option>
-                    {mySubjects.map(s => (
-                      <option key={s.id} value={s.id}>{s.name} (Year {s.year})</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs tracking-widest uppercase">Title</Label>
-                <Input value={title} onChange={e => setTitle(e.target.value)}
-                  className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
-                  placeholder="Announcement title" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs tracking-widest uppercase">Content</Label>
-                <textarea value={content} onChange={e => setContent(e.target.value)} rows={4}
-                  maxLength={MAX_CONTENT_LENGTH}
-                  className="w-full bg-muted border border-border text-foreground rounded-md px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-zinc-600 placeholder:text-muted-foreground"
-                  placeholder="Write the announcement..." />
-                <p className={`text-xs text-right tabular-nums ${
-                  content.length >= MAX_CONTENT_LENGTH
-                    ? 'text-red-400'
-                    : content.length > MAX_CONTENT_LENGTH * 0.8
-                    ? 'text-yellow-500'
-                    : 'text-muted-foreground'
-                }`}>
-                  {content.length} / {MAX_CONTENT_LENGTH}
-                </p>
-              </div>
-              {error && <p className="text-red-400 text-sm">{error}</p>}
-              <Button onClick={create} disabled={saving}
-                className="w-full bg-foreground text-background hover:bg-foreground/90 font-light tracking-widest uppercase text-sm">
-                {saving ? <Loader2 size={14} className="animate-spin mr-2" /> : null}
-                {saving ? 'Posting...' : 'Post Announcement'}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
         )}
-      </div>
+      />
 
-      {loadError && (
-        <div className="mb-4 px-4 py-3 rounded-lg bg-red-900/30 border border-red-800 text-red-300 text-sm tracking-wide">
-          {loadError}
-        </div>
-      )}
-
-      {/* Inline success banner */}
-      {successMsg && (
-        <div className="mb-4 px-4 py-3 rounded-lg bg-green-900/30 border border-green-800 text-green-300 text-sm tracking-wide flex items-center gap-2">
-          <CheckCircle size={15} />
-          {successMsg}
-        </div>
-      )}
+      {loadError && <ErrorBanner title="Something went wrong" message={loadError} onRetry={load} />}
 
       {loading ? (
         <div className="space-y-3">
           {[1,2,3].map(i => (
-            <Card key={i} className="bg-card border-border">
-              <CardContent className="py-4 flex items-start gap-4">
+            <Card key={i}>
+              <CardContent className="flex items-start gap-4">
                 <Skeleton className="w-4 h-4 mt-0.5 rounded shrink-0" />
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center gap-2">
@@ -230,44 +219,44 @@ export default function AnnouncementsPage() {
           ))}
         </div>
       ) : items.length === 0 ? (
-        <Card className="bg-card border-border">
-          <CardContent className="py-16 flex flex-col items-center gap-3">
-            <Megaphone size={40} className="text-muted-foreground/40" />
-            <p className="text-foreground text-sm font-medium">No announcements yet</p>
-            <p className="text-muted-foreground text-xs tracking-wide">Click "+ New" to post the first announcement</p>
-          </CardContent>
+        <Card>
+          <EmptyState
+            icon={<Megaphone size={28} strokeWidth={1.5} />}
+            title="No announcements yet"
+            message='Click "+ New" to post the first announcement'
+          />
         </Card>
       ) : (
         <div className="space-y-3">
           {items.map(a => (
-            <Card key={a.id} className="bg-card border-border">
-              <CardContent className="py-4 flex items-start justify-between gap-4">
+            <Card key={a.id}>
+              <CardContent className="flex items-start justify-between gap-4">
                 <div className="flex gap-3 min-w-0">
                   <Megaphone size={16} className="text-muted-foreground mt-0.5 shrink-0" />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <p className="text-foreground font-medium text-sm">{a.title}</p>
-                      <span className={`text-xs px-2 py-0.5 rounded border tracking-wider uppercase ${
-                        a.type === 'general'
-                          ? 'bg-blue-900 text-blue-300 border-blue-800'
-                          : a.type === 'year_specific'
-                          ? 'bg-purple-900 text-purple-300 border-purple-800'
-                          : 'bg-green-900 text-green-300 border-green-800'
-                      }`}>
+                      <StatusPill tone={a.type === 'general' ? 'accent' : 'neutral'}>
                         {a.type === 'general' ? 'General' : a.type === 'year_specific' ? `Year ${a.year}` : (a.subject_name || 'Subject')}
-                      </span>
+                      </StatusPill>
                     </div>
                     <p className="text-muted-foreground text-sm leading-relaxed">{a.content}</p>
-                    <p className="text-zinc-600 text-xs mt-2">
+                    <p className="text-muted-foreground text-xs mt-2">
                       {a.posted_by_name && `${a.posted_by_name} · `}
-                      {new Date(a.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {fmtDate(a.created_at)}
                     </p>
                   </div>
                 </div>
                 {role === 'super_admin' && (
-                  <button onClick={() => remove(a.id)} className="text-zinc-600 hover:text-red-400 transition-colors shrink-0 mt-0.5">
-                    <Trash2 size={15} />
-                  </button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => remove(a.id)}
+                    aria-label="Delete announcement"
+                    className="shrink-0 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 />
+                  </Button>
                 )}
               </CardContent>
             </Card>

@@ -5,11 +5,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Loader2, Pencil, BarChart2 } from 'lucide-react';
 import { useCurrentUser } from '@/lib/auth';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { FormField } from '@/components/shared/FormField';
+import { SelectField } from '@/components/shared/SelectField';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
+import { EmptyState } from '@/components/shared/EmptyState';
 
 type SGPARow = {
   id: number; student_id: number; student_name: string; roll_number: string;
@@ -135,10 +139,10 @@ export default function ResultsPage() {
   };
 
   const sgpaColor = (s: number) =>
-    s >= 8 ? 'text-green-400' : s >= 6 ? 'text-yellow-400' : 'text-red-400';
+    s >= 8 ? 'text-success' : s >= 6 ? 'text-warning' : 'text-destructive';
 
   const cgpaColor = (c: number) =>
-    c >= 8 ? 'text-green-400' : c >= 6 ? 'text-yellow-400' : 'text-red-400';
+    c >= 8 ? 'text-success' : c >= 6 ? 'text-warning' : 'text-destructive';
 
   const selectedStudent = students.find(s => String(s.id) === form.student_id);
 
@@ -171,111 +175,81 @@ export default function ResultsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-light tracking-widest uppercase text-foreground">Results</h1>
-        {isSuperAdmin && (
-          <button
-            onClick={openNew}
-            className="flex items-center gap-1.5 bg-foreground text-background hover:bg-foreground/90 text-xs tracking-widest uppercase font-light px-4 py-2 rounded-md transition-colors"
-          >
-            <Plus size={14} /> Add Results
-          </button>
+      <PageHeader
+        title="Results"
+        description="Semester SGPA records and the CGPA they add up to"
+        actions={isSuperAdmin && (
+          <Button onClick={openNew}>
+            <Plus /> Add Results
+          </Button>
         )}
-      </div>
+      />
 
       <Dialog open={open} onOpenChange={v => { setOpen(v); setError(''); }}>
-        <DialogContent className="bg-card border-border text-foreground">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-foreground font-light tracking-widest uppercase">
-              {editingId ? 'Edit Result' : 'Add Result'}
-            </DialogTitle>
+            <DialogTitle>{editingId ? 'Edit Result' : 'Add Result'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
-
-            {/* Student selector */}
-            <div className="space-y-2">
-              <Label className="text-muted-foreground text-xs tracking-widest uppercase">Student</Label>
-              <select
+            <FormField
+              label="Student"
+              htmlFor="res-student"
+              hint={selectedStudent && `Year ${selectedStudent.year} student · auto-filled semester ${autoSemester(selectedStudent.year)}`}
+            >
+              <SelectField
+                id="res-student"
                 value={form.student_id}
-                onChange={e => handleStudentChange(e.target.value)}
-                className="w-full bg-muted border border-border text-foreground rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-600"
-              >
-                <option value="">Select student...</option>
-                {students.map(s => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} — {s.roll_number} (Year {s.year})
-                  </option>
-                ))}
-              </select>
-              {selectedStudent && (
-                <p className="text-zinc-600 text-xs">
-                  Year {selectedStudent.year} student · auto-filled semester {autoSemester(selectedStudent.year)}
-                </p>
-              )}
-            </div>
+                onValueChange={handleStudentChange}
+                placeholder="Select student..."
+                options={students.map(s => ({ value: String(s.id), label: `${s.name} — ${s.roll_number} (Year ${s.year})` }))}
+              />
+            </FormField>
 
-            {/* Semester + SGPA side by side */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs tracking-widest uppercase">Semester</Label>
-                <select
+              <FormField label="Semester" htmlFor="res-semester">
+                <SelectField
+                  id="res-semester"
                   value={form.semester}
-                  onChange={e => setField('semester', e.target.value)}
-                  className="w-full bg-muted border border-border text-foreground rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-600"
-                >
-                  <option value="">Select...</option>
-                  {[1,2,3,4,5,6,7,8].map(s => (
-                    <option key={s} value={s}>Sem {s}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs tracking-widest uppercase">SGPA (0–10)</Label>
+                  onValueChange={v => setField('semester', v)}
+                  placeholder="Select..."
+                  options={[1, 2, 3, 4, 5, 6, 7, 8].map(n => ({ value: String(n), label: `Sem ${n}` }))}
+                />
+              </FormField>
+              <FormField label="SGPA (0–10)" htmlFor="res-sgpa">
                 <Input
+                  id="res-sgpa"
                   value={form.sgpa}
                   onChange={e => setField('sgpa', e.target.value)}
-                  className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
                   placeholder="e.g. 8.5"
                   type="number"
                   min="0" max="10" step="0.01"
                 />
-              </div>
+              </FormField>
             </div>
 
-            {/* Academic year */}
-            <div className="space-y-2">
-              <Label className="text-muted-foreground text-xs tracking-widest uppercase">Academic Year</Label>
+            <FormField label="Academic Year" htmlFor="res-ay" hint="Auto-filled to current academic year. Edit if needed.">
               <Input
+                id="res-ay"
                 value={form.academic_year}
                 onChange={e => setField('academic_year', e.target.value)}
-                className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
                 placeholder="e.g. 2024-25"
               />
-              <p className="text-zinc-600 text-xs">Auto-filled to current academic year. Edit if needed.</p>
-            </div>
+            </FormField>
 
-            {error && <p className="text-red-400 text-sm">{error}</p>}
+            {error && <p className="text-destructive text-sm">{error}</p>}
 
-            <Button
-              onClick={save}
-              disabled={saving}
-              className="w-full bg-foreground text-background hover:bg-foreground/90 font-light tracking-widest uppercase text-sm"
-            >
-              {saving ? <Loader2 size={14} className="animate-spin mr-2" /> : null}
+            <Button onClick={save} disabled={saving} className="w-full">
+              {saving ? <Loader2 className="animate-spin" /> : null}
               {saving ? 'Saving...' : 'Save'}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {loadError && (
-        <div className="mb-4 px-4 py-3 rounded-lg bg-red-900/30 border border-red-800 text-red-300 text-sm tracking-wide">
-          {loadError}
-        </div>
-      )}
+      {loadError && <ErrorBanner title="Couldn't load results" message={loadError} onRetry={load} />}
 
       {/* SGPA Table */}
-      <Card className="bg-card border-border mb-6">
+      <Card className="py-0 gap-0 mb-6">
         <CardContent className="p-0">
           {loading ? (
             <div className="p-4 space-y-3">
@@ -292,38 +266,35 @@ export default function ResultsPage() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow className="border-border hover:bg-transparent">
+                <TableRow className="hover:bg-transparent">
                   {['Student', 'Roll No', 'Semester', 'SGPA', 'Academic Year', ''].map(h => (
-                    <TableHead key={h} className="text-muted-foreground text-xs tracking-widest uppercase">{h}</TableHead>
+                    <TableHead key={h} className="label h-11 px-4">{h}</TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {results.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-16">
-                      <div className="flex flex-col items-center gap-3">
-                        <BarChart2 size={40} className="text-muted-foreground/40" />
-                        <p className="text-foreground text-sm font-medium">No results added yet</p>
-                        <p className="text-muted-foreground text-xs tracking-wide">Click "+ Add Results" to add the first result</p>
-                      </div>
+                    <TableCell colSpan={6} className="p-0">
+                      <EmptyState
+                        icon={<BarChart2 size={28} strokeWidth={1.5} />}
+                        title="No results added yet"
+                        message='Click "+ Add Results" to add the first result'
+                      />
                     </TableCell>
                   </TableRow>
                 ) : results.map(r => (
-                  <TableRow key={r.id} className="border-border hover:bg-muted">
-                    <TableCell className="text-foreground text-sm">{r.student_name}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{r.roll_number}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">Sem {r.semester}</TableCell>
-                    <TableCell className={`text-sm font-medium ${sgpaColor(r.sgpa)}`}>{r.sgpa}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{r.academic_year}</TableCell>
-                    <TableCell>
+                  <TableRow key={r.id}>
+                    <TableCell className="px-4 py-3 text-foreground text-sm">{r.student_name}</TableCell>
+                    <TableCell className="px-4 py-3 text-muted-foreground text-sm">{r.roll_number}</TableCell>
+                    <TableCell className="px-4 py-3 text-muted-foreground text-sm">Sem {r.semester}</TableCell>
+                    <TableCell className={`px-4 py-3 text-sm tabular-nums font-medium ${sgpaColor(r.sgpa)}`}>{r.sgpa}</TableCell>
+                    <TableCell className="px-4 py-3 text-muted-foreground text-sm">{r.academic_year}</TableCell>
+                    <TableCell className="px-4 py-3 text-right">
                       {isSuperAdmin && (
-                        <button
-                          onClick={() => openEdit(r)}
-                          className="text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <Pencil size={13} />
-                        </button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => openEdit(r)} aria-label={`Edit ${r.student_name}'s result`} className="text-muted-foreground">
+                          <Pencil />
+                        </Button>
                       )}
                     </TableCell>
                   </TableRow>
@@ -337,29 +308,29 @@ export default function ResultsPage() {
       {/* CGPA Summary */}
       {!loading && cgpaSummary.length > 0 && (
         <div>
-          <p className="text-xs tracking-widest uppercase text-muted-foreground mb-3">CGPA Summary</p>
-          <Card className="bg-card border-border">
+          <p className="label mb-3">CGPA Summary</p>
+          <Card className="py-0 gap-0">
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-border hover:bg-transparent">
+                  <TableRow className="hover:bg-transparent">
                     {['Student', 'Roll No', 'Semesters', 'CGPA'].map(h => (
-                      <TableHead key={h} className="text-muted-foreground text-xs tracking-widest uppercase">{h}</TableHead>
+                      <TableHead key={h} className="label h-11 px-4">{h}</TableHead>
                     ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {cgpaSummary.map((s, idx) => (
-                    <TableRow key={s.student_id} className="border-border hover:bg-muted">
-                      <TableCell className="text-foreground text-sm">
+                    <TableRow key={s.student_id}>
+                      <TableCell className="px-4 py-3 text-foreground text-sm">
                         <div className="flex items-center gap-2">
-                          {idx === 0 && <span className="text-yellow-400 text-xs">★</span>}
+                          {idx === 0 && <span className="text-warning text-xs" aria-label="Top CGPA">★</span>}
                           {s.student_name}
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{s.roll_number}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{s.semesters}</TableCell>
-                      <TableCell className={`text-sm font-semibold ${cgpaColor(s.cgpa)}`}>{s.cgpa}</TableCell>
+                      <TableCell className="px-4 py-3 text-muted-foreground text-sm">{s.roll_number}</TableCell>
+                      <TableCell className="px-4 py-3 text-muted-foreground text-sm">{s.semesters}</TableCell>
+                      <TableCell className={`px-4 py-3 text-sm tabular-nums font-semibold ${cgpaColor(s.cgpa)}`}>{s.cgpa}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

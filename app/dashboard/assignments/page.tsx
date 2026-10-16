@@ -4,10 +4,18 @@ import api from '@/lib/api';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Loader2, ChevronDown, ChevronUp, FileText, Clock, Users } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Loader2, ChevronDown, ChevronUp, FileText, Clock, Users, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { FormField } from '@/components/shared/FormField';
+import { SelectField } from '@/components/shared/SelectField';
+import { StatusPill } from '@/components/shared/StatusPill';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
+import { EmptyState } from '@/components/shared/EmptyState';
 
 type Subject = { id: number; name: string; code: string; year: number };
 type Assignment = {
@@ -43,6 +51,9 @@ export default function AssignmentsPage() {
   const [loadingSubs, setLoadingSubs] = useState<number | null>(null);
   const [yearFilter, setYearFilter] = useState('all');
   const [file, setFile] = useState<File | null>(null);
+  const [loadError, setLoadError] = useState<{ title: string; retry: () => void } | null>(null);
+  const [subjectsReload, setSubjectsReload] = useState(0);
+  const [assignmentsReload, setAssignmentsReload] = useState(0);
 
   const [form, setForm] = useState({
     title: '', description: '', subject_id: '', due_date: '',
@@ -52,13 +63,18 @@ export default function AssignmentsPage() {
     api.get('/admin/subjects').then(r => {
       setSubjects(r.data);
       setLoading(false);
-    }).catch(() => setLoading(false));
-  }, []);
+    }).catch(() => {
+      setLoading(false);
+      setLoadError({ title: "Couldn't load subjects", retry: () => { setLoadError(null); setLoading(true); setSubjectsReload(k => k + 1); } });
+    });
+  }, [subjectsReload]);
 
   useEffect(() => {
     if (!subjectId) { setAssignments([]); return; }
-    api.get(`/assignments/subject/${subjectId}`).then(r => setAssignments(r.data)).catch(() => {});
-  }, [subjectId]);
+    api.get(`/assignments/subject/${subjectId}`)
+      .then(r => setAssignments(r.data))
+      .catch(() => setLoadError({ title: "Couldn't load assignments", retry: () => { setLoadError(null); setAssignmentsReload(k => k + 1); } }));
+  }, [subjectId, assignmentsReload]);
 
   const setField = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
@@ -99,73 +115,71 @@ export default function AssignmentsPage() {
       try {
         const r = await api.get(`/assignments/${id}/submissions`);
         setSubmissions(prev => ({ ...prev, [id]: r.data }));
-      } catch {}
+      } catch {
+        setLoadError({ title: "Couldn't load submissions", retry: () => { setLoadError(null); setExpanded(null); } });
+      }
       setLoadingSubs(null);
     }
   };
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-light tracking-widest uppercase text-foreground">Assignments</h1>
-        <button
-          onClick={() => { setOpen(true); setError(''); }}
-          className="flex items-center gap-1.5 bg-foreground text-background hover:bg-foreground/90 text-xs tracking-widest uppercase font-light px-4 py-2 rounded-md transition-colors"
-        >
-          <Plus size={14} /> New Assignment
-        </button>
-      </div>
+      <PageHeader
+        title="Assignments"
+        description="Set work for a subject and review what students hand in"
+        actions={
+          <Button onClick={() => { setOpen(true); setError(''); }}>
+            <Plus /> New Assignment
+          </Button>
+        }
+      />
+
+      {loadError && <ErrorBanner title={loadError.title} onRetry={loadError.retry} />}
 
       <Dialog open={open} onOpenChange={v => { setOpen(v); setError(''); }}>
-        <DialogContent className="bg-card border-border text-foreground">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-foreground font-light tracking-widest uppercase">New Assignment</DialogTitle>
+            <DialogTitle>New Assignment</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <Label className="text-muted-foreground text-xs tracking-widest uppercase">Subject</Label>
-              <select
+            <FormField label="Subject" htmlFor="asg-subject">
+              <SelectField
+                id="asg-subject"
                 value={form.subject_id}
-                onChange={e => setField('subject_id', e.target.value)}
-                className="w-full bg-muted border border-border text-foreground rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-600"
-              >
-                <option value="">Select subject...</option>
-                {subjects.map(s => (
-                  <option key={s.id} value={s.id}>{s.name} — Year {s.year}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-muted-foreground text-xs tracking-widest uppercase">Title</Label>
+                onValueChange={v => setField('subject_id', v)}
+                placeholder="Select subject..."
+                options={subjects.map(s => ({ value: String(s.id), label: `${s.name} — Year ${s.year}` }))}
+              />
+            </FormField>
+            <FormField label="Title" htmlFor="asg-title">
               <Input
+                id="asg-title"
                 value={form.title}
                 onChange={e => setField('title', e.target.value)}
-                className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
                 placeholder="e.g. Unit Test 1 Preparation"
               />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-muted-foreground text-xs tracking-widest uppercase">Description (optional)</Label>
-              <textarea
+            </FormField>
+            <FormField label="Description (optional)" htmlFor="asg-description">
+              <Textarea
+                id="asg-description"
                 value={form.description}
                 onChange={e => setField('description', e.target.value)}
                 rows={3}
-                className="w-full bg-muted border border-border text-foreground rounded-md px-3 py-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-zinc-600 placeholder:text-muted-foreground"
+                className="min-h-20 resize-none field-sizing-fixed"
                 placeholder="Instructions or details..."
               />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-muted-foreground text-xs tracking-widest uppercase">Due Date & Time</Label>
-              <input
+            </FormField>
+            <FormField label="Due Date & Time" htmlFor="asg-due">
+              <Input
+                id="asg-due"
                 type="datetime-local"
                 value={form.due_date}
                 onChange={e => setField('due_date', e.target.value)}
-                className="w-full bg-muted border border-border text-foreground rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-600 [color-scheme:dark]"
+                className="dark:[color-scheme:dark]"
               />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-muted-foreground text-xs tracking-widest uppercase">Attachment (optional)</Label>
-              <label className="flex items-center gap-3 w-full bg-muted border border-dashed border-border rounded-md px-3 py-3 cursor-pointer hover:bg-card transition-colors">
+            </FormField>
+            <FormField label="Attachment (optional)">
+              <label className="flex items-center gap-3 w-full border border-dashed border-input rounded-lg px-3 py-3 cursor-pointer hover:bg-accent transition-colors">
                 <FileText size={15} className="text-muted-foreground shrink-0" />
                 <span className="text-sm text-muted-foreground truncate">
                   {file ? file.name : 'Click to attach a PDF or file'}
@@ -173,18 +187,14 @@ export default function AssignmentsPage() {
                 <input type="file" className="hidden" onChange={e => setFile(e.target.files?.[0] || null)} />
               </label>
               {file && (
-                <button onClick={() => setFile(null)} className="text-xs text-red-400 hover:text-red-300">
-                  ✕ Remove
-                </button>
+                <Button variant="ghost" size="xs" onClick={() => setFile(null)} className="text-destructive hover:text-destructive">
+                  <X /> Remove
+                </Button>
               )}
-            </div>
-            {error && <p className="text-red-400 text-sm">{error}</p>}
-            <Button
-              onClick={create}
-              disabled={saving}
-              className="w-full bg-foreground text-background hover:bg-foreground/90 font-light tracking-widest uppercase text-sm"
-            >
-              {saving ? <Loader2 size={14} className="animate-spin mr-2" /> : null}
+            </FormField>
+            {error && <p className="text-destructive text-sm">{error}</p>}
+            <Button onClick={create} disabled={saving} className="w-full">
+              {saving ? <Loader2 className="animate-spin" /> : null}
               {saving ? 'Creating...' : 'Create Assignment'}
             </Button>
           </div>
@@ -192,40 +202,41 @@ export default function AssignmentsPage() {
       </Dialog>
 
       {/* Year + Subject filters */}
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {['all','1','2','3','4'].map(y => (
-          <button key={y} onClick={() => { setYearFilter(y); setSubjectId(''); setAssignments([]); }}
-            className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${
-              yearFilter === y
-                ? 'bg-foreground text-background border-foreground'
-                : 'border-border text-muted-foreground hover:text-foreground'
-            }`}>
-            {y === 'all' ? 'All Years' : `Year ${y}`}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        value={yearFilter}
+        onValueChange={v => { setYearFilter(String(v)); setSubjectId(''); setAssignments([]); }}
+        className="mb-4"
+      >
+        <TabsList>
+          {['all', '1', '2', '3', '4'].map(y => (
+            <TabsTrigger key={y} value={y} className="px-3">
+              {y === 'all' ? 'All Years' : `Year ${y}`}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 mb-6">
         {loading ? (
-          <div className="col-span-3 flex justify-center py-8"><Loader2 className="animate-spin text-muted-foreground" /></div>
+          <div className="col-span-full flex justify-center py-8"><Loader2 className="animate-spin text-muted-foreground" /></div>
         ) : filteredSubjects.length === 0 ? (
-          <Card className="col-span-3 bg-card border-border">
-            <CardContent className="py-12 text-center text-muted-foreground tracking-wider uppercase text-sm">
-              No subjects found
-            </CardContent>
+          <Card className="col-span-full">
+            <EmptyState className="py-12" title="No subjects found" />
           </Card>
         ) : filteredSubjects.map(s => (
           <button
             key={s.id}
             onClick={() => setSubjectId(String(s.id))}
-            className={`text-left rounded-lg border p-4 transition-colors ${
+            aria-pressed={subjectId === String(s.id)}
+            className={cn(
+              'text-left rounded-xl border p-4 transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
               subjectId === String(s.id)
-                ? 'bg-foreground text-background border-foreground'
-                : 'bg-card border-border hover:bg-muted text-foreground'
-            }`}
+                ? 'bg-primary-soft border-primary text-foreground'
+                : 'bg-card border-border hover:bg-accent text-foreground',
+            )}
           >
             <p className="font-medium text-sm">{s.name}</p>
-            <p className={`text-xs mt-0.5 ${subjectId === String(s.id) ? 'opacity-70' : 'text-muted-foreground'}`}>
+            <p className="text-xs mt-0.5 text-muted-foreground">
               {s.code} · Year {s.year}
             </p>
           </button>
@@ -233,16 +244,12 @@ export default function AssignmentsPage() {
       </div>
 
       {!subjectId ? (
-        <Card className="bg-card border-border">
-          <CardContent className="py-16 text-center text-muted-foreground tracking-wider uppercase text-sm">
-            Select a subject to view assignments
-          </CardContent>
+        <Card>
+          <EmptyState icon={<FileText size={28} strokeWidth={1.5} />} title="Select a subject to view assignments" />
         </Card>
       ) : assignments.length === 0 ? (
-        <Card className="bg-card border-border">
-          <CardContent className="py-16 text-center text-muted-foreground tracking-wider uppercase text-sm">
-            No assignments for this subject
-          </CardContent>
+        <Card>
+          <EmptyState icon={<FileText size={28} strokeWidth={1.5} />} title="No assignments for this subject" />
         </Card>
       ) : (
         <div className="space-y-3">
@@ -251,17 +258,15 @@ export default function AssignmentsPage() {
             const subs = submissions[a.id] || [];
             const isExpanded = expanded === a.id;
             return (
-              <Card key={a.id} className="bg-card border-border">
-                <CardContent className="py-4">
+              <Card key={a.id}>
+                <CardContent>
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <FileText size={14} className="text-muted-foreground shrink-0" />
                         <p className="text-foreground font-medium text-sm">{a.title}</p>
                         {overdue && (
-                          <span className="text-xs px-2 py-0.5 rounded border bg-red-900/30 text-red-400 border-red-800 tracking-wider uppercase">
-                            Overdue
-                          </span>
+                          <StatusPill tone="danger">Overdue</StatusPill>
                         )}
                       </div>
                       {a.description && (
@@ -278,40 +283,44 @@ export default function AssignmentsPage() {
                         </div>
                         {a.file_url && (
                           <a href={a.file_url} target="_blank" rel="noreferrer"
-                            className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                            className="flex items-center gap-1 text-xs text-primary hover:underline">
                             <FileText size={11} />
                             <span>{a.file_name || 'Attachment'}</span>
                           </a>
                         )}
                       </div>
                     </div>
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
                       onClick={() => toggleExpand(a.id)}
-                      className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                      aria-expanded={isExpanded}
+                      aria-label={isExpanded ? 'Hide submissions' : 'Show submissions'}
+                      className="shrink-0 text-muted-foreground"
                     >
                       {loadingSubs === a.id
-                        ? <Loader2 size={16} className="animate-spin" />
-                        : isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />
+                        ? <Loader2 className="animate-spin" />
+                        : isExpanded ? <ChevronUp /> : <ChevronDown />
                       }
-                    </button>
+                    </Button>
                   </div>
 
                   {isExpanded && (
                     <div className="mt-4 border-t border-border pt-4">
                       {subs.length === 0 ? (
-                        <p className="text-muted-foreground text-sm text-center py-4 tracking-wider uppercase">No submissions yet</p>
+                        <EmptyState className="py-6" title="No submissions yet" />
                       ) : (
                         <Table>
                           <TableHeader>
-                            <TableRow className="border-border hover:bg-transparent">
+                            <TableRow className="hover:bg-transparent">
                               {['Student', 'Roll No', 'Note', 'File', 'Submitted At'].map(h => (
-                                <TableHead key={h} className="text-muted-foreground text-xs tracking-widest uppercase">{h}</TableHead>
+                                <TableHead key={h} className="label">{h}</TableHead>
                               ))}
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {subs.map(sub => (
-                              <TableRow key={sub.id} className="border-border hover:bg-muted">
+                              <TableRow key={sub.id}>
                                 <TableCell className="text-foreground text-sm">{sub.student_name}</TableCell>
                                 <TableCell className="text-muted-foreground text-sm">{sub.roll_number}</TableCell>
                                 <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate">
@@ -319,7 +328,7 @@ export default function AssignmentsPage() {
                                 </TableCell>
                                 <TableCell className="text-sm">
                                   {sub.file_url
-                                    ? <a href={sub.file_url} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline text-xs">{sub.file_name || 'View'}</a>
+                                    ? <a href={sub.file_url} target="_blank" rel="noreferrer" className="text-primary hover:underline text-xs">{sub.file_name || 'View'}</a>
                                     : <span className="text-muted-foreground">—</span>
                                   }
                                 </TableCell>
