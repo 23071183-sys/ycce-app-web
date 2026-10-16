@@ -22,7 +22,15 @@ const api = axios.create({
 
 // While the host is still starting it answers 5xx rather than queueing, so the
 // first request after an idle period fails even though nothing is wrong.
+// A request whose 503 means something else (e.g. the AI service being off)
+// sets skipWakeRetry so the answer comes back at once.
 const WAKE_RETRY_STATUSES = [502, 503, 504];
+
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    skipWakeRetry?: boolean;
+  }
+}
 const WAKE_RETRY_DELAYS_MS = [2000, 5000, 10000];
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -47,7 +55,7 @@ api.interceptors.response.use(
     }
 
     const config = error.config;
-    if (config && WAKE_RETRY_STATUSES.includes(error.response?.status)) {
+    if (config && !config.skipWakeRetry && WAKE_RETRY_STATUSES.includes(error.response?.status)) {
       const attempt = config._wakeRetry ?? 0;
       if (attempt < WAKE_RETRY_DELAYS_MS.length) {
         config._wakeRetry = attempt + 1;

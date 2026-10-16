@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { getToken, getUser, clearToken, updateStoredUser, useCurrentUser, USER_UPDATED_EVENT } from '@/lib/auth';
 import {
   LayoutDashboard, Users, Megaphone, BarChart2,
-  Clock, GraduationCap, LogOut, Menu, ClipboardList, FileText, MessageCircle, PenSquare, Settings, MessagesSquare, IndianRupee, Briefcase, Ticket
+  Clock, GraduationCap, LogOut, Menu, ClipboardList, FileText, MessageCircle, PenSquare, Settings, MessagesSquare, IndianRupee, Briefcase, Ticket, BookOpen
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,7 @@ const NAV = [
   { href: '/dashboard/marks', label: 'Marks Entry', icon: PenSquare, subtitle: 'MSE / TA / ESE per subject' },
   { href: '/dashboard/assignments', label: 'Assignments', icon: FileText, subtitle: 'Manage assignments' },
   { href: '/dashboard/timetable', label: 'Timetable', icon: Clock, subtitle: 'Class schedule' },
+  { href: '/dashboard/study', label: 'Study', icon: BookOpen, subtitle: 'Past papers & exam schedule', roles: ['admin', 'super_admin', 'professor'] },
   { href: '/dashboard/placements', label: 'Placements', icon: Briefcase, subtitle: 'Campus drives & outcomes' },
   { href: '/dashboard/events', label: 'Events', icon: Ticket, subtitle: 'Fest registrations & check-in', roles: ['fest_admin', 'admin', 'super_admin'] },
   { href: '/dashboard/fees', label: 'Fees', icon: IndianRupee, subtitle: 'Fee structures & collection', roles: ['admin', 'super_admin'] },
