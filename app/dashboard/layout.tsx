@@ -2,12 +2,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { getToken, getUser, clearToken } from '@/lib/auth';
+import { getToken, getUser, clearToken, updateStoredUser, USER_UPDATED_EVENT } from '@/lib/auth';
 import {
   LayoutDashboard, Users, Megaphone, BarChart2,
-  Clock, GraduationCap, LogOut, Menu, ClipboardList, FileText, MessageCircle, PenSquare
+  Clock, GraduationCap, LogOut, Menu, ClipboardList, FileText, MessageCircle, PenSquare, Settings
 } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { cn } from '@/lib/utils';
@@ -25,6 +25,7 @@ const NAV = [
   { href: '/dashboard/timetable', label: 'Timetable', icon: Clock, subtitle: 'Class schedule' },
   { href: '/dashboard/faculty', label: 'Faculty', icon: GraduationCap, subtitle: 'Staff directory' },
   { href: '/dashboard/chat', label: 'AI Assistant', icon: MessageCircle, subtitle: 'Ask anything about the system' },
+  { href: '/dashboard/settings', label: 'Settings', icon: Settings, subtitle: 'Profile, notifications & theme' },
 ];
 
 function getInitials(name: string): string {
@@ -50,6 +51,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       // The badge is optional, but a failure here usually means the API is
       // unreachable, which the console should show rather than hide.
       .catch(err => console.warn('Could not load pending approvals count:', err?.message));
+    // The session stored at sign-in has no photo; fetch the live profile so the
+    // avatar (and any renamed name) shows.
+    api.get('/users/me')
+      .then(r => updateStoredUser({ name: r.data?.name, avatar_url: r.data?.avatar_url ?? null }))
+      .catch(err => console.warn('Could not load profile:', err?.message));
+  }, []);
+
+  // Settings edits the stored user; follow it here without a reload.
+  useEffect(() => {
+    const onUpdate = (e: Event) => setUser((e as CustomEvent).detail);
+    window.addEventListener(USER_UPDATED_EVENT, onUpdate);
+    return () => window.removeEventListener(USER_UPDATED_EVENT, onUpdate);
   }, []);
 
   const logout = () => {
@@ -113,15 +126,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <div className="p-4 border-t border-border">
           {user && (
-            <div className="flex items-center gap-3 mb-3">
+            <Link
+              href="/dashboard/settings"
+              onClick={() => setOpen(false)}
+              title="Profile & settings"
+              className="-mx-2 mb-3 flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-accent"
+            >
               <Avatar>
+                {user.avatar_url ? <AvatarImage src={user.avatar_url} alt="" /> : null}
                 <AvatarFallback className="text-xs font-medium text-foreground">{getInitials(user.name)}</AvatarFallback>
               </Avatar>
               <div className="min-w-0">
                 <p className="text-foreground text-xs font-medium truncate">{user.name}</p>
                 <p className="text-muted-foreground text-xs truncate capitalize">{user.role === 'super_admin' ? 'Admin' : user.role}</p>
               </div>
-            </div>
+            </Link>
           )}
           <div className="flex items-center justify-between">
             <Button variant="ghost" size="sm" onClick={logout} className="-ml-2 text-muted-foreground">

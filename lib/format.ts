@@ -42,3 +42,26 @@ export function attendanceTone(pct: number | string | null | undefined): Tone {
   if (n >= 60) return 'warning';
   return 'danger';
 }
+
+// Rupees typed into a form ("1250", "1,250.50") as whole paise, or null when
+// it isn't a usable amount. Rounds to the nearest paisa so 0.1 + 0.2 style
+// float error never reaches the API.
+export function rupeesToPaise(rupees: string | number | null | undefined): number | null {
+  const n = Number(String(rupees ?? '').replace(/[,\s₹]/g, ''));
+  if (String(rupees ?? '').trim() === '' || !Number.isFinite(n) || n < 0) return null;
+  return Math.round(n * 100);
+}
+
+// Paise back into an editable rupee string: 125050 → "1250.5".
+export function paiseToRupees(paise: number | string | null | undefined): string {
+  const n = Number(paise);
+  return Number.isFinite(n) ? String(n / 100) : '';
+}
+
+// A DATE column arrives as an ISO timestamp; this gives the YYYY-MM-DD an
+// <input type="date"> wants, read in the viewer's own time zone.
+export function toDateInput(value: unknown): string {
+  const d = value instanceof Date ? value : value ? new Date(value as string) : null;
+  if (!d || Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}

@@ -53,3 +53,14 @@ export function useCurrentUser() {
     isProfessor: user?.role === 'professor',
   };
 }
+
+// Fired on window when the stored user changes (profile name or photo edited),
+// so the sidebar can update without a reload.
+export const USER_UPDATED_EVENT = 'admin-user-updated';
+
+export function updateStoredUser(patch: Record<string, unknown>) {
+  if (typeof window === 'undefined') return;
+  const next = { ...(getUser() || {}), ...patch };
+  localStorage.setItem('admin_user', JSON.stringify(next));
+  window.dispatchEvent(new CustomEvent(USER_UPDATED_EVENT, { detail: next }));
+}
