@@ -1,15 +1,22 @@
 'use client';
 import { useEffect, useState, useMemo } from 'react';
 import api from '@/lib/api';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { CheckCircle, XCircle, Loader2, Search, Users, Megaphone } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCurrentUser } from '@/lib/auth';
+import { toast } from 'sonner';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { StatusPill } from '@/components/shared/StatusPill';
+import { ErrorBanner } from '@/components/shared/ErrorBanner';
+import { EmptyState } from '@/components/shared/EmptyState';
+import type { Tone } from '@/lib/format';
+
+const STATUS_TONE: Record<string, Tone> = { approved: 'success', pending: 'warning', rejected: 'danger' };
 
 type User = {
   id: number; name: string; email: string; role: string;
@@ -25,7 +32,6 @@ export default function UsersPage() {
   const [acting, setActing] = useState<number | null>(null);
   const [tab, setTab] = useState('all');
   const [search, setSearch] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
   const [loadError, setLoadError] = useState('');
   const { isSuperAdmin: canWrite, isAdmin: canManageStaff } = useCurrentUser();
 
@@ -45,10 +51,7 @@ export default function UsersPage() {
 
   useEffect(() => { load(); }, []);
 
-  const showSuccess = (msg: string) => {
-    setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(''), 2000);
-  };
+  const showSuccess = (msg: string) => toast.success(msg);
 
   const approve = async (id: number) => {
     setActing(id);
@@ -81,18 +84,9 @@ export default function UsersPage() {
     setActing(null);
   };
 
-  const statusBadge = (s: string) => {
-    const map: Record<string, string> = {
-      approved: 'bg-green-900 text-green-300 border-green-800',
-      pending: 'bg-yellow-900 text-yellow-300 border-yellow-800',
-      rejected: 'bg-red-900 text-red-300 border-red-800',
-    };
-    return (
-      <span className={`text-xs px-2 py-0.5 rounded border tracking-wider uppercase ${map[s] || ''}`}>
-        {s}
-      </span>
-    );
-  };
+  const statusBadge = (s: string) => (
+    <StatusPill tone={STATUS_TONE[s] ?? 'neutral'} className="capitalize">{s}</StatusPill>
+  );
 
   // Filter students by search query
   const filteredAll = useMemo(() => {
@@ -107,33 +101,21 @@ export default function UsersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-light tracking-widest uppercase text-foreground mb-8">Users</h1>
+      <PageHeader title="Users" description="Approve registrations and manage student and staff accounts" />
 
-      {loadError && (
-        <div className="mb-4 px-4 py-3 rounded-lg bg-red-900/30 border border-red-800 text-red-300 text-sm tracking-wide">
-          {loadError}
-        </div>
-      )}
-
-      {/* Inline success banner */}
-      {successMsg && (
-        <div className="mb-4 px-4 py-3 rounded-lg bg-green-900/30 border border-green-800 text-green-300 text-sm tracking-wide flex items-center gap-2">
-          <CheckCircle size={15} />
-          {successMsg}
-        </div>
-      )}
+      {loadError && <ErrorBanner title="Something went wrong" message={loadError} onRetry={load} />}
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="bg-muted border border-border mb-6">
-          <TabsTrigger value="all" className="data-active:bg-foreground data-active:text-background text-muted-foreground">
+        <TabsList className="mb-4">
+          <TabsTrigger value="all">
             All Students
-            <span className="ml-1.5 text-xs opacity-70">({all.length})</span>
+            <span className="text-xs text-muted-foreground tabular-nums">({all.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="pending" className="data-active:bg-foreground data-active:text-background text-muted-foreground">
+          <TabsTrigger value="pending">
             Pending {pending.length > 0 && `(${pending.length})`}
           </TabsTrigger>
           {canManageStaff && (
-            <TabsTrigger value="staff" className="data-active:bg-foreground data-active:text-background text-muted-foreground">
+            <TabsTrigger value="staff">
               Staff Permissions
             </TabsTrigger>
           )}
@@ -143,44 +125,34 @@ export default function UsersPage() {
           {loading ? (
             <div className="flex justify-center py-16"><Loader2 className="animate-spin text-muted-foreground" /></div>
           ) : pending.length === 0 ? (
-            <Card className="bg-card border-border">
-              <CardContent className="py-16 flex flex-col items-center gap-3">
-                <CheckCircle size={40} className="text-muted-foreground/40" />
-                <p className="text-foreground text-sm font-medium">All caught up</p>
-                <p className="text-muted-foreground text-xs tracking-wide">No pending approvals at this time</p>
-              </CardContent>
+            <Card>
+              <EmptyState
+                icon={<CheckCircle size={28} strokeWidth={1.5} />}
+                title="All caught up"
+                message="No pending approvals at this time"
+              />
             </Card>
           ) : (
             <div className="space-y-3">
               {pending.map(u => (
-                <Card key={u.id} className="bg-card border-border">
-                  <CardContent className="py-4 flex items-center justify-between gap-4">
+                <Card key={u.id}>
+                  <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="text-foreground font-medium">{u.name}</p>
                       <p className="text-muted-foreground text-sm">{u.email}</p>
-                      <p className="text-zinc-600 text-xs mt-1 tracking-wider">
+                      <p className="text-muted-foreground text-xs mt-1">
                         Year {u.year} · Roll {u.roll_number} · {u.department}
                       </p>
                     </div>
                     {canWrite && (
                       <div className="flex gap-2 shrink-0">
-                        <Button
-                          size="sm"
-                          onClick={() => approve(u.id)}
-                          disabled={acting === u.id}
-                          className="bg-green-900 hover:bg-green-800 text-green-300 border border-green-800 text-xs tracking-wider"
-                        >
-                          {acting === u.id ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-                          <span className="ml-1.5">Approve</span>
+                        <Button onClick={() => approve(u.id)} disabled={acting === u.id}>
+                          {acting === u.id ? <Loader2 className="animate-spin" /> : <CheckCircle />}
+                          Approve
                         </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => reject(u.id)}
-                          disabled={acting === u.id}
-                          className="bg-red-900 hover:bg-red-800 text-red-300 border border-red-800 text-xs tracking-wider"
-                        >
-                          {acting === u.id ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
-                          <span className="ml-1.5">Reject</span>
+                        <Button variant="destructive" onClick={() => reject(u.id)} disabled={acting === u.id}>
+                          {acting === u.id ? <Loader2 className="animate-spin" /> : <XCircle />}
+                          Reject
                         </Button>
                       </div>
                     )}
@@ -199,11 +171,11 @@ export default function UsersPage() {
               placeholder="Search by name, email, or roll number..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-8 bg-card border-border text-foreground placeholder:text-muted-foreground text-sm"
+              className="h-9 pl-8 bg-card"
             />
           </div>
 
-          <Card className="bg-card border-border">
+          <Card className="py-0">
             <CardContent className="p-0">
               {loading ? (
                 <div className="p-4 space-y-3">
@@ -218,34 +190,30 @@ export default function UsersPage() {
                   ))}
                 </div>
               ) : filteredAll.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3">
-                  <Users size={40} className="text-muted-foreground/40" />
-                  <p className="text-foreground text-sm font-medium">
-                    {search ? 'No results found' : 'No students yet'}
-                  </p>
-                  <p className="text-muted-foreground text-xs tracking-wide">
-                    {search ? 'Try a different search term' : 'Students will appear here once they register'}
-                  </p>
-                </div>
+                <EmptyState
+                  icon={<Users size={28} strokeWidth={1.5} />}
+                  title={search ? 'No results found' : 'No students yet'}
+                  message={search ? 'Try a different search term' : 'Students will appear here once they register'}
+                />
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-border hover:bg-transparent">
-                      <TableHead className="text-muted-foreground text-xs tracking-widest uppercase">Name</TableHead>
-                      <TableHead className="text-muted-foreground text-xs tracking-widest uppercase">Email</TableHead>
-                      <TableHead className="text-muted-foreground text-xs tracking-widest uppercase">Roll</TableHead>
-                      <TableHead className="text-muted-foreground text-xs tracking-widest uppercase">Year</TableHead>
-                      <TableHead className="text-muted-foreground text-xs tracking-widest uppercase">Status</TableHead>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="label h-11 px-4">Name</TableHead>
+                      <TableHead className="label h-11 px-4">Email</TableHead>
+                      <TableHead className="label h-11 px-4">Roll</TableHead>
+                      <TableHead className="label h-11 px-4">Year</TableHead>
+                      <TableHead className="label h-11 px-4">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredAll.map(u => (
-                      <TableRow key={u.id} className="border-border hover:bg-muted">
-                        <TableCell className="text-foreground text-sm">{u.name}</TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{u.email}</TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{u.roll_number}</TableCell>
-                        <TableCell className="text-muted-foreground text-sm">Y{u.year}</TableCell>
-                        <TableCell>{statusBadge(u.status)}</TableCell>
+                      <TableRow key={u.id}>
+                        <TableCell className="px-4 py-3 text-foreground text-sm">{u.name}</TableCell>
+                        <TableCell className="px-4 py-3 text-muted-foreground text-sm">{u.email}</TableCell>
+                        <TableCell className="px-4 py-3 text-muted-foreground text-sm">{u.roll_number}</TableCell>
+                        <TableCell className="px-4 py-3 text-muted-foreground text-sm">Y{u.year}</TableCell>
+                        <TableCell className="px-4 py-3">{statusBadge(u.status)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -257,43 +225,40 @@ export default function UsersPage() {
 
         {canManageStaff && (
           <TabsContent value="staff">
-            <Card className="bg-card border-border">
+            <Card className="py-0">
               <CardContent className="p-0">
                 {loading ? (
                   <div className="flex justify-center py-16"><Loader2 className="animate-spin text-muted-foreground" /></div>
                 ) : (
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-border hover:bg-transparent">
-                        <TableHead className="text-muted-foreground text-xs tracking-widest uppercase">Name</TableHead>
-                        <TableHead className="text-muted-foreground text-xs tracking-widest uppercase">Email</TableHead>
-                        <TableHead className="text-muted-foreground text-xs tracking-widest uppercase">Role</TableHead>
-                        <TableHead className="text-muted-foreground text-xs tracking-widest uppercase">General Announcements</TableHead>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="label h-11 px-4">Name</TableHead>
+                        <TableHead className="label h-11 px-4">Email</TableHead>
+                        <TableHead className="label h-11 px-4">Role</TableHead>
+                        <TableHead className="label h-11 px-4">General Announcements</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {staff.map(u => (
-                        <TableRow key={u.id} className="border-border hover:bg-muted">
-                          <TableCell className="text-foreground text-sm">{u.name}</TableCell>
-                          <TableCell className="text-muted-foreground text-sm">{u.email}</TableCell>
-                          <TableCell>
-                            <span className="text-xs px-2 py-0.5 rounded border tracking-wider uppercase bg-blue-900 text-blue-300 border-blue-800">
-                              {u.role}
-                            </span>
+                        <TableRow key={u.id}>
+                          <TableCell className="px-4 py-3 text-foreground text-sm">{u.name}</TableCell>
+                          <TableCell className="px-4 py-3 text-muted-foreground text-sm">{u.email}</TableCell>
+                          <TableCell className="px-4 py-3">
+                            <StatusPill className="capitalize">{u.role}</StatusPill>
                           </TableCell>
-                          <TableCell>
-                            <button
+                          <TableCell className="px-4 py-3">
+                            <Button
+                              size="sm"
+                              variant={u.can_post_general ? 'secondary' : 'outline'}
                               onClick={() => toggleGeneralPost(u.id)}
                               disabled={acting === u.id}
-                              className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded border tracking-wider transition-colors ${
-                                u.can_post_general
-                                  ? 'bg-green-900 text-green-300 border-green-800 hover:bg-green-800'
-                                  : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700'
-                              }`}
+                              aria-pressed={u.can_post_general}
+                              className={u.can_post_general ? 'bg-success-soft text-success hover:bg-success-soft/70' : 'text-muted-foreground'}
                             >
-                              {acting === u.id ? <Loader2 size={12} className="animate-spin" /> : <Megaphone size={12} />}
+                              {acting === u.id ? <Loader2 className="animate-spin" /> : <Megaphone />}
                               {u.can_post_general ? 'Allowed' : 'Restricted'}
-                            </button>
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
