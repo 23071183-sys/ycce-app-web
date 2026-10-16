@@ -240,12 +240,12 @@ export default function SettingsPage() {
               <p className="mt-1 mb-4 text-sm text-muted-foreground">Sent to the mobile app on your phone.</p>
               <div className="divide-y divide-border">
                 {PREFS.map(({ key, label, hint }) => (
-                  <label key={key} htmlFor={`pref-${key}`} className="flex cursor-pointer items-center justify-between gap-4 py-3">
+                  <label key={key} className="flex cursor-pointer items-center justify-between gap-4 py-3">
                     <span>
                       <span className="block text-sm text-foreground">{label}</span>
                       <span className="block text-xs text-muted-foreground">{hint}</span>
                     </span>
-                    <Switch id={`pref-${key}`} checked={prefOn(key)} onCheckedChange={v => togglePref(key, v)} />
+                    <Switch checked={prefOn(key)} onCheckedChange={v => togglePref(key, v)} />
                   </label>
                 ))}
               </div>
