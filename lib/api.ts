@@ -55,7 +55,10 @@ api.interceptors.response.use(
     }
 
     const config = error.config;
-    if (config && !config.skipWakeRetry && WAKE_RETRY_STATUSES.includes(error.response?.status)) {
+    // A JSON { error } body means our server itself answered; only Render's own
+    // wake-up responses are worth retrying.
+    const fromOurServer = typeof error.response?.data?.error === 'string';
+    if (config && !config.skipWakeRetry && !fromOurServer && WAKE_RETRY_STATUSES.includes(error.response?.status)) {
       const attempt = config._wakeRetry ?? 0;
       if (attempt < WAKE_RETRY_DELAYS_MS.length) {
         config._wakeRetry = attempt + 1;
