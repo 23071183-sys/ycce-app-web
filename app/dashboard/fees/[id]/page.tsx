@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import api from '@/lib/api';
 import { useCurrentUser } from '@/lib/auth';
 import { fmtDate, fmtINR, type Tone } from '@/lib/format';
+import { downloadCsv, slug } from '@/lib/csv';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,29 +29,19 @@ type Filter = (typeof FILTERS)[number];
 const balance = (i: Invoice) => Math.max(0, Number(i.amount_due_paise) - Number(i.amount_paid_paise));
 const isOpen = (i: Invoice) => i.status === 'unpaid' || i.status === 'partial';
 
-// Quote a CSV field when it holds a comma, quote or newline.
-const csvField = (v: unknown) => {
-  const s = v === null || v === undefined ? '' : String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
-
-function downloadCsv(structure: FeeStructure, rows: Invoice[]) {
-  const header = ['Roll number', 'Name', 'Email', 'Status', 'Amount due (INR)', 'Paid (INR)', 'Balance (INR)', 'Last paid', 'Waiver note'];
-  const lines = rows.map(i => [
-    i.roll_number, i.name, i.email, i.status,
-    (Number(i.amount_due_paise) / 100).toFixed(2),
-    (Number(i.amount_paid_paise) / 100).toFixed(2),
-    (balance(i) / 100).toFixed(2),
-    i.last_paid_at ? fmtDate(i.last_paid_at) : '',
-    i.waive_note,
-  ].map(csvField).join(','));
-  const blob = new Blob([[header.join(','), ...lines].join('\n')], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${structure.title.replace(/[^\w-]+/g, '-').toLowerCase()}-${structure.academic_year}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+function exportCsv(structure: FeeStructure, rows: Invoice[]) {
+  downloadCsv(
+    `${slug(structure.title)}-${structure.academic_year}`,
+    ['Roll number', 'Name', 'Email', 'Status', 'Amount due (INR)', 'Paid (INR)', 'Balance (INR)', 'Last paid', 'Waiver note'],
+    rows.map(i => [
+      i.roll_number, i.name, i.email, i.status,
+      (Number(i.amount_due_paise) / 100).toFixed(2),
+      (Number(i.amount_paid_paise) / 100).toFixed(2),
+      (balance(i) / 100).toFixed(2),
+      i.last_paid_at ? fmtDate(i.last_paid_at) : '',
+      i.waive_note,
+    ]),
+  );
 }
 
 export default function FeeStatusPage() {
@@ -160,7 +151,7 @@ export default function FeeStatusPage() {
         title={structure?.title || 'Fee'}
         description={structure ? `${fmtINR(structure.total_paise)} per student · due ${fmtDate(structure.due_date)}${Number(structure.late_fee_paise) > 0 ? ` · ${fmtINR(structure.late_fee_paise)} late fee after` : ''}` : undefined}
         actions={structure && (
-          <Button variant="outline" onClick={() => downloadCsv(structure, shown)} disabled={shown.length === 0}>
+          <Button variant="outline" onClick={() => exportCsv(structure, shown)} disabled={shown.length === 0}>
             <Download /> Export CSV
           </Button>
         )}
