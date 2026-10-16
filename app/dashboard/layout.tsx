@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { getToken, getUser, clearToken, updateStoredUser, USER_UPDATED_EVENT } from '@/lib/auth';
 import {
   LayoutDashboard, Users, Megaphone, BarChart2,
-  Clock, GraduationCap, LogOut, Menu, ClipboardList, FileText, MessageCircle, PenSquare, Settings
+  Clock, GraduationCap, LogOut, Menu, ClipboardList, FileText, MessageCircle, PenSquare, Settings, MessagesSquare
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,9 @@ import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import ChatWidget from '@/components/ChatWidget';
+import { MESSAGES_READ_EVENT } from './messages/_components/types';
+
+const UNREAD_POLL_MS = 30000;
 
 const NAV = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard, subtitle: 'Stats & summary' },
@@ -24,6 +27,7 @@ const NAV = [
   { href: '/dashboard/assignments', label: 'Assignments', icon: FileText, subtitle: 'Manage assignments' },
   { href: '/dashboard/timetable', label: 'Timetable', icon: Clock, subtitle: 'Class schedule' },
   { href: '/dashboard/faculty', label: 'Faculty', icon: GraduationCap, subtitle: 'Staff directory' },
+  { href: '/dashboard/messages', label: 'Messages', icon: MessagesSquare, subtitle: 'Direct messages with students' },
   { href: '/dashboard/chat', label: 'AI Assistant', icon: MessageCircle, subtitle: 'Ask anything about the system' },
   { href: '/dashboard/settings', label: 'Settings', icon: Settings, subtitle: 'Profile, notifications & theme' },
 ];
@@ -41,6 +45,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [user, setUser] = useState<any>(null);
   const [open, setOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     if (!getToken()) { router.push('/login'); return; }
@@ -56,6 +61,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     api.get('/users/me')
       .then(r => updateStoredUser({ name: r.data?.name, avatar_url: r.data?.avatar_url ?? null }))
       .catch(err => console.warn('Could not load profile:', err?.message));
+  }, []);
+
+  // Unread direct messages: polled while the tab is visible, and refreshed at
+  // once when the messages page marks a thread read.
+  useEffect(() => {
+    if (!getToken()) return;
+    const fetchUnread = () => {
+      if (document.visibilityState !== 'visible') return;
+      api.get('/messages/unread-count')
+        .then(r => setUnreadCount(Number(r.data?.total) || 0))
+        .catch(err => console.warn('Could not load unread messages count:', err?.message));
+    };
+    fetchUnread();
+    const t = setInterval(fetchUnread, UNREAD_POLL_MS);
+    window.addEventListener(MESSAGES_READ_EVENT, fetchUnread);
+    document.addEventListener('visibilitychange', fetchUnread);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener(MESSAGES_READ_EVENT, fetchUnread);
+      document.removeEventListener('visibilitychange', fetchUnread);
+    };
   }, []);
 
   // Settings edits the stored user; follow it here without a reload.
@@ -98,6 +124,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const active = pathname === href ||
               (href !== '/dashboard' && pathname.startsWith(href + '/'));
             const isUsers = href === '/dashboard/users';
+            const isMessages = href === '/dashboard/messages';
             return (
               <Link
                 key={href}
@@ -117,6 +144,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {isUsers && pendingCount > 0 && (
                   <span className="min-w-5 rounded-full bg-destructive px-1.5 py-0.5 text-center text-[11px] font-semibold leading-none text-primary-foreground tabular-nums">
                     {pendingCount}
+                  </span>
+                )}
+                {isMessages && unreadCount > 0 && (
+                  <span
+                    aria-label={`${unreadCount} unread`}
+                    className="min-w-5 rounded-full bg-primary px-1.5 py-0.5 text-center text-[11px] font-semibold leading-none text-primary-foreground tabular-nums"
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
               </Link>
