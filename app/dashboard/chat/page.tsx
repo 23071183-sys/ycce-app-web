@@ -3,6 +3,10 @@ import { useState, useRef, useEffect } from 'react';
 import { ArrowUp, Loader2, RefreshCw } from 'lucide-react';
 import api from '@/lib/api';
 import { useCurrentUser } from '@/lib/auth';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 const SUGGESTIONS = [
   'Show all professors and their subjects',
@@ -68,18 +72,16 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-6rem)] max-w-3xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-border shrink-0">
-        <div>
-          <h1 className="text-2xl font-light tracking-widest uppercase text-foreground">AI Assistant</h1>
-          <p className="text-muted-foreground text-xs mt-0.5 tracking-wide">
-            {isAdmin ? 'Developer mode — full backend access' : 'College data assistant'}
-          </p>
-        </div>
-        <button onClick={reset}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-lg px-3 py-2 transition-colors hover:bg-muted">
-          <RefreshCw size={12} />
-          New chat
-        </button>
+      <div className="shrink-0 border-b border-border [&>div]:mb-4">
+        <PageHeader
+          title="AI Assistant"
+          description={isAdmin ? 'Developer mode — full backend access' : 'College data assistant'}
+          actions={
+            <Button variant="outline" onClick={reset}>
+              <RefreshCw /> New chat
+            </Button>
+          }
+        />
       </div>
 
       {/* Messages */}
@@ -89,21 +91,20 @@ export default function ChatPage() {
           return (
             <div key={i} className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
               {/* Avatar */}
-              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                isUser ? 'bg-foreground' : 'bg-muted border border-border'
-              }`}>
-                {isUser
-                  ? <span className="text-background text-[10px] font-bold">{user?.name?.charAt(0) || 'U'}</span>
-                  : <span className="text-foreground text-[10px] font-bold">CT</span>
-                }
+              <div className={cn(
+                'w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-bold',
+                isUser ? 'bg-foreground text-background' : 'bg-muted border border-border text-foreground',
+              )}>
+                {isUser ? (user?.name?.charAt(0) || 'U') : 'CT'}
               </div>
 
               {/* Bubble */}
-              <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+              <div className={cn(
+                'max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap',
                 isUser
-                  ? 'bg-foreground text-background rounded-tr-sm'
-                  : 'bg-card border border-border text-foreground rounded-tl-sm'
-              }`}>
+                  ? 'bg-primary text-primary-foreground rounded-tr-sm'
+                  : 'bg-card border border-border text-foreground rounded-tl-sm',
+              )}>
                 {msg.content}
               </div>
             </div>
@@ -126,13 +127,13 @@ export default function ChatPage() {
       {/* Suggestions — only at start */}
       {messages.length === 1 && (
         <div className="shrink-0 pb-4">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-3">Suggestions</p>
+          <p className="label mb-3">Suggestions</p>
           <div className="flex flex-wrap gap-2">
             {SUGGESTIONS.map(s => (
-              <button key={s} onClick={() => send(s)}
-                className="text-xs text-muted-foreground bg-card border border-border rounded-full px-3 py-1.5 hover:text-foreground hover:border-foreground/40 transition-colors">
+              <Button key={s} variant="outline" size="sm" onClick={() => send(s)}
+                className="rounded-full bg-card text-xs font-normal text-muted-foreground">
                 {s}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -140,21 +141,21 @@ export default function ChatPage() {
 
       {/* Input */}
       <div className="shrink-0 border-t border-border pt-4">
-        <div className="flex items-end gap-3 bg-card border border-border rounded-xl px-4 py-3 focus-within:border-foreground/40 transition-colors">
-          <textarea
+        <div className="flex items-end gap-3 bg-card border border-border rounded-xl px-4 py-3 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50 transition-colors">
+          <Textarea
             ref={textareaRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKey}
             placeholder="Ask anything..."
             rows={1}
-            className="flex-1 resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none max-h-32"
+            aria-label="Message"
+            className="flex-1 min-h-0 max-h-32 resize-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 dark:bg-transparent"
             style={{ scrollbarWidth: 'none' }}
           />
-          <button onClick={() => send()} disabled={!input.trim() || loading}
-            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors disabled:opacity-30 bg-foreground text-background hover:opacity-80">
-            <ArrowUp size={14} />
-          </button>
+          <Button size="icon" onClick={() => send()} disabled={!input.trim() || loading} aria-label="Send">
+            <ArrowUp />
+          </Button>
         </div>
         <p className="text-center text-[10px] text-muted-foreground mt-2 tracking-wide">
           Press Enter to send · Shift+Enter for new line
