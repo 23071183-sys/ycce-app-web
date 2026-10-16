@@ -125,15 +125,15 @@ export default function UsersPage() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="bg-muted border border-border mb-6">
-          <TabsTrigger value="all" className="data-[state=active]:bg-white data-[state=active]:text-black text-zinc-400">
+          <TabsTrigger value="all" className="data-active:bg-foreground data-active:text-background text-muted-foreground">
             All Students
             <span className="ml-1.5 text-xs opacity-70">({all.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="pending" className="data-[state=active]:bg-white data-[state=active]:text-black text-zinc-400">
+          <TabsTrigger value="pending" className="data-active:bg-foreground data-active:text-background text-muted-foreground">
             Pending {pending.length > 0 && `(${pending.length})`}
           </TabsTrigger>
           {canManageStaff && (
-            <TabsTrigger value="staff" className="data-[state=active]:bg-white data-[state=active]:text-black text-zinc-400">
+            <TabsTrigger value="staff" className="data-active:bg-foreground data-active:text-background text-muted-foreground">
               Staff Permissions
             </TabsTrigger>
           )}
