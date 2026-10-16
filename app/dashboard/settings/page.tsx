@@ -15,6 +15,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { FormField } from '@/components/shared/FormField';
 import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
+import { AiProviderCard } from '@/components/shared/AiProviderCard';
 import { Camera, Loader2, Trash2 } from 'lucide-react';
 
 type Prefs = Partial<Record<PrefKey, boolean>>;
@@ -262,6 +263,11 @@ export default function SettingsPage() {
               <ThemeToggle />
             </CardContent>
           </Card>
+
+          {/* AI provider (admins see it; super admin switches) */}
+          {['admin', 'super_admin'].includes(profile.role) && (
+            <AiProviderCard canEdit={profile.role === 'super_admin'} />
+          )}
         </div>
       ) : null}
     </div>
