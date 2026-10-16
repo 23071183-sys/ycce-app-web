@@ -11,6 +11,8 @@ import { Loader2, Save, Check } from 'lucide-react';
 
 type Subject = { id: number; name: string; code: string; year: number; professor_name?: string };
 type Component = { key: string; label: string; max: number };
+type ReMse = { key: string; label: string; max: number; replaces: string[] };
+type ReMseSlot = '' | 'mse1' | 'mse2';
 type StudentRow = {
   student_id: number;
   student_name: string;
@@ -19,7 +21,13 @@ type StudentRow = {
   mse2_marks: string | null;
   ta_marks: string | null;
   ese_marks: string | null;
+  re_mse_marks: string;
+  re_mse_for: ReMseSlot;
 };
+
+// RE-MSE stands in for whichever MSE the student missed.
+const SLOT_KEY: Record<'mse1' | 'mse2', string> = { mse1: 'mse1_marks', mse2: 'mse2_marks' };
+const SLOT_LABEL: Record<'mse1' | 'mse2', string> = { mse1: 'MSE 1', mse2: 'MSE 2' };
 
 const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -40,6 +48,7 @@ export default function MarksPage() {
   const [academicYear, setAcademicYear] = useState(currentAcademicYear());
 
   const [components, setComponents] = useState<Component[]>([]);
+  const [reMse, setReMse] = useState<ReMse | null>(null);
   const [maxTotal, setMaxTotal] = useState(100);
   const [rows, setRows] = useState<StudentRow[]>([]);
 
@@ -66,6 +75,7 @@ export default function MarksPage() {
     try {
       const r = await api.get(`/results/subject/${subjectId}/sheet`, { params: { semester } });
       setComponents(r.data.components);
+      setReMse(r.data.re_mse ?? null);
       setMaxTotal(r.data.max_total);
       setRows(r.data.students.map((s: any) => ({
         ...s,
@@ -73,6 +83,8 @@ export default function MarksPage() {
         mse2_marks: s.mse2_marks ?? '',
         ta_marks: s.ta_marks ?? '',
         ese_marks: s.ese_marks ?? '',
+        re_mse_marks: s.re_mse_marks ?? '',
+        re_mse_for: s.re_mse_for ?? '',
       })));
     } catch (e: any) {
       setError(e.response?.data?.error || 'Could not load the marks sheet');
@@ -85,11 +97,38 @@ export default function MarksPage() {
 
   const setMark = (studentId: number, key: string, value: string) => {
     setSaved(false);
-    setRows(rs => rs.map(r => (r.student_id === studentId ? { ...r, [key]: value } : r)));
+    setRows(rs => rs.map(r => {
+      if (r.student_id !== studentId) return r;
+      const next = { ...r, [key]: value };
+      // Typing a RE-MSE mark with no slot chosen picks the MSE that's blank,
+      // since RE-MSE only exists for an exam the student missed.
+      if (key === 're_mse_marks' && value !== '' && !next.re_mse_for) {
+        if (next.mse1_marks === '') next.re_mse_for = 'mse1';
+        else if (next.mse2_marks === '') next.re_mse_for = 'mse2';
+      }
+      return next;
+    }));
   };
 
+  const hasReMse = (r: StudentRow) => r.re_mse_marks !== '';
+  // The slot RE-MSE is filling, if any.
+  const replacedKey = (r: StudentRow) =>
+    hasReMse(r) && r.re_mse_for ? SLOT_KEY[r.re_mse_for] : null;
+
   const rowTotal = (r: StudentRow) =>
-    components.reduce((sum, c) => sum + (Number((r as any)[c.key]) || 0), 0);
+    components.reduce((sum, c) => {
+      const v = c.key === replacedKey(r) ? r.re_mse_marks : (r as any)[c.key];
+      return sum + (Number(v) || 0);
+    }, 0);
+
+  // Why a row's RE-MSE can't be saved yet, or null when it's fine.
+  const reMseProblem = (r: StudentRow): string | null => {
+    if (!hasReMse(r)) return null;
+    if (reMse && Number(r.re_mse_marks) > reMse.max) return `Max ${reMse.max}`;
+    if (!r.re_mse_for) return 'Pick the missed MSE';
+    if ((r as any)[SLOT_KEY[r.re_mse_for]] !== '') return `Clear ${SLOT_LABEL[r.re_mse_for]} first`;
+    return null;
+  };
 
   // Flag a value that exceeds its component's ceiling as the user types, rather
   // than letting the whole save fail on one bad cell.
@@ -97,8 +136,8 @@ export default function MarksPage() {
     const v = (r as any)[c.key];
     return v !== '' && Number(v) > c.max;
   };
-  const hasErrors = rows.some(r => components.some(c => isOver(r, c)));
-  const enteredCount = rows.filter(r => components.some(c => (r as any)[c.key] !== '')).length;
+  const hasErrors = rows.some(r => components.some(c => isOver(r, c)) || reMseProblem(r) !== null);
+  const enteredCount = rows.filter(r => hasReMse(r) || components.some(c => (r as any)[c.key] !== '')).length;
 
   const save = async () => {
     setSaving(true);
@@ -115,6 +154,8 @@ export default function MarksPage() {
           mse2_marks: r.mse2_marks === '' ? null : r.mse2_marks,
           ta_marks: r.ta_marks === '' ? null : r.ta_marks,
           ese_marks: r.ese_marks === '' ? null : r.ese_marks,
+          re_mse_marks: r.re_mse_marks === '' ? null : r.re_mse_marks,
+          re_mse_for: hasReMse(r) && r.re_mse_for ? r.re_mse_for : null,
         })),
       });
       setSaved(true);
@@ -142,7 +183,8 @@ export default function MarksPage() {
         <h1 className="text-2xl font-light tracking-widest uppercase text-foreground">Marks Entry</h1>
         <p className="text-muted-foreground text-sm mt-1">
           {components.length
-            ? components.map(c => `${c.label} ${c.max}`).join(' + ') + ` = ${maxTotal}`
+            ? components.map(c => `${c.label} ${c.max}`).join(' + ') + ` = ${maxTotal}` +
+              (reMse ? ` · ${reMse.label} replaces a missed MSE` : '')
             : 'Select a subject and semester to begin.'}
         </p>
       </div>
@@ -209,6 +251,11 @@ export default function MarksPage() {
                         {c.label}<span className="normal-case tracking-normal opacity-60"> /{c.max}</span>
                       </TableHead>
                     ))}
+                    {reMse && (
+                      <TableHead className="text-muted-foreground text-xs tracking-widest uppercase text-center">
+                        {reMse.label}<span className="normal-case tracking-normal opacity-60"> /{reMse.max}</span>
+                      </TableHead>
+                    )}
                     <TableHead className="text-muted-foreground text-xs tracking-widest uppercase text-center">
                       Total<span className="normal-case tracking-normal opacity-60"> /{maxTotal}</span>
                     </TableHead>
@@ -221,21 +268,62 @@ export default function MarksPage() {
                       <TableRow key={r.student_id} className="border-border hover:bg-muted">
                         <TableCell className="text-muted-foreground text-sm">{r.roll_number}</TableCell>
                         <TableCell className="text-foreground text-sm">{r.student_name}</TableCell>
-                        {components.map(c => (
-                          <TableCell key={c.key} className="text-center">
-                            <Input
-                              type="number"
-                              min={0}
-                              max={c.max}
-                              inputMode="numeric"
-                              value={(r as any)[c.key]}
-                              onChange={e => setMark(r.student_id, c.key, e.target.value)}
-                              className={`w-16 mx-auto text-center bg-background text-foreground ${
-                                isOver(r, c) ? 'border-red-500' : 'border-border'
-                              }`}
-                            />
+                        {components.map(c => {
+                          // The MSE that RE-MSE is standing in for: shown greyed so
+                          // it's clear which slot the substitute fills.
+                          const replaced = c.key === replacedKey(r);
+                          return (
+                            <TableCell key={c.key} className="text-center">
+                              <Input
+                                type="number"
+                                min={0}
+                                max={c.max}
+                                inputMode="numeric"
+                                value={(r as any)[c.key]}
+                                placeholder={replaced ? 'RE' : undefined}
+                                title={replaced ? `Filled by ${reMse?.label}` : undefined}
+                                onChange={e => setMark(r.student_id, c.key, e.target.value)}
+                                className={`w-16 mx-auto text-center bg-background text-foreground ${
+                                  isOver(r, c) || (replaced && (r as any)[c.key] !== '')
+                                    ? 'border-destructive'
+                                    : 'border-border'
+                                } ${replaced ? 'opacity-50' : ''}`}
+                              />
+                            </TableCell>
+                          );
+                        })}
+                        {reMse && (
+                          <TableCell className="text-center">
+                            <div className="flex flex-col items-center gap-1">
+                              <Input
+                                type="number"
+                                min={0}
+                                max={reMse.max}
+                                inputMode="numeric"
+                                value={r.re_mse_marks}
+                                onChange={e => setMark(r.student_id, 're_mse_marks', e.target.value)}
+                                className={`w-16 text-center bg-background text-foreground ${
+                                  reMseProblem(r) ? 'border-destructive' : 'border-border'
+                                }`}
+                              />
+                              {hasReMse(r) && (
+                                <select
+                                  aria-label="MSE this RE-MSE replaces"
+                                  value={r.re_mse_for}
+                                  onChange={e => setMark(r.student_id, 're_mse_for', e.target.value)}
+                                  className="bg-background border border-border rounded-md px-1 py-0.5 text-xs text-foreground"
+                                >
+                                  <option value="">for…</option>
+                                  <option value="mse1">for MSE 1</option>
+                                  <option value="mse2">for MSE 2</option>
+                                </select>
+                              )}
+                              {reMseProblem(r) && (
+                                <span className="text-destructive text-[11px]">{reMseProblem(r)}</span>
+                              )}
+                            </div>
                           </TableCell>
-                        ))}
+                        )}
                         <TableCell
                           className={`text-center text-sm font-semibold ${
                             total === 0 ? 'text-muted-foreground'
@@ -254,7 +342,7 @@ export default function MarksPage() {
             <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
               <p className="text-muted-foreground text-xs">
                 {enteredCount} of {rows.length} students have marks entered
-                {hasErrors && <span className="text-red-400"> · some marks exceed their maximum</span>}
+                {hasErrors && <span className="text-red-400"> · some rows need fixing — see the red boxes</span>}
               </p>
               <button
                 onClick={save}
