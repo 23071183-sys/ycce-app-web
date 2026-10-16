@@ -30,7 +30,8 @@ export function relativeTime(value: unknown): string {
 // Money is stored in whole paise; show it as rupees: "₹1,25,000".
 export function fmtINR(paise: number | string | null | undefined): string {
   const rupees = (Number(paise) || 0) / 100;
-  return `₹${rupees.toLocaleString('en-IN', { maximumFractionDigits: rupees % 1 ? 2 : 0 })}`;
+  const fraction = rupees % 1 ? 2 : 0;
+  return `₹${rupees.toLocaleString('en-IN', { minimumFractionDigits: fraction, maximumFractionDigits: fraction })}`;
 }
 
 export type Tone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger';
