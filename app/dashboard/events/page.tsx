@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CompufestLogo, YashLogo } from '@/components/brand';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusPill } from '@/components/shared/StatusPill';
 import { ErrorBanner } from '@/components/shared/ErrorBanner';
@@ -28,6 +29,10 @@ type CheckInResult = { tone: Tone; title: string; detail?: string };
 
 const CHECKER_ROLES = ['fest_admin', 'admin', 'super_admin'];
 const TYPE_LABEL: Record<EventType, string> = { fest: 'Yash fest', compufest: 'Compufest' };
+const SECTIONS: { type: EventType; tagline: string; gradient: string; Logo: typeof YashLogo }[] = [
+  { type: 'fest', tagline: 'The college fest', gradient: 'bg-brand-yash', Logo: YashLogo },
+  { type: 'compufest', tagline: "Computer Technology's tech fest", gradient: 'bg-brand-compufest', Logo: CompufestLogo },
+];
 const FILTERS = ['all', 'registered', 'checked_in'] as const;
 type Filter = (typeof FILTERS)[number];
 const FILTER_LABEL: Record<Filter, string> = { all: 'All', registered: 'Not checked in', checked_in: 'Checked in' };
@@ -218,11 +223,33 @@ export default function EventsPage() {
 
       <CheckInBox onCheckedIn={refreshAfterCheckIn} />
 
-      <Tabs value={type} onValueChange={v => switchType(v as EventType)} className="mb-4">
-        <TabsList>
-          {(['fest', 'compufest'] as const).map(t => <TabsTrigger key={t} value={t} className="px-3">{TYPE_LABEL[t]}</TabsTrigger>)}
-        </TabsList>
-      </Tabs>
+      {/* One gradient header bar per fest; the chosen one is filled in its colours. */}
+      <div role="tablist" aria-label="Fest" className="mb-6 grid gap-3 sm:grid-cols-2">
+        {SECTIONS.map(({ type: t, tagline, gradient, Logo }) => {
+          const active = t === type;
+          const totals = Object.values(counts).reduce((a, c) => ({ r: a.r + c.registered, ci: a.ci + c.checked_in }), { r: 0, ci: 0 });
+          return (
+            <button
+              key={t}
+              role="tab"
+              aria-selected={active}
+              onClick={() => { if (!active) switchType(t); }}
+              className={cn(
+                'flex items-center gap-4 rounded-xl px-5 py-4 text-left transition-all outline-none focus-visible:ring-3 focus-visible:ring-ring/50',
+                active ? `${gradient} text-primary-foreground shadow-sm` : 'border border-border bg-card text-foreground hover:bg-accent',
+              )}
+            >
+              <Logo size={44} className={active ? 'rounded-xl ring-2 ring-primary-foreground/40' : undefined} />
+              <span className="min-w-0">
+                <span className="block text-base font-semibold">{TYPE_LABEL[t]}</span>
+                <span className={cn('block text-xs', active ? 'opacity-90' : 'text-muted-foreground')}>
+                  {active && !loading ? `${events.length} event${events.length === 1 ? '' : 's'} · ${totals.r} registered · ${totals.ci} checked in` : tagline}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
       {loadError && <ErrorBanner title="Couldn't load events" message={loadError} onRetry={() => { setLoading(true); fetchEvents(type); }} />}
 

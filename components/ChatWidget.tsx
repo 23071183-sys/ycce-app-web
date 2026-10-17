@@ -1,11 +1,12 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, ArrowUp, Loader2 } from 'lucide-react';
+import { X, ArrowUp, Loader2 } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ChatText } from '@/components/shared/ChatText';
+import { AssistantLogo } from '@/components/brand';
 
 const SUGGESTIONS = [
   'Show all professors and their subjects',
@@ -80,11 +81,11 @@ export default function ChatWidget() {
       {/* Floating button */}
       <Button
         onClick={() => setOpen(o => !o)}
-        className="fixed bottom-6 right-6 z-50 size-12 rounded-full shadow-lg [&_svg:not([class*='size-'])]:size-5"
+        className="fixed bottom-6 right-6 z-50 size-14 rounded-full border-0 bg-brand-assistant p-0 text-primary-foreground shadow-lg hover:opacity-90 [&_svg:not([class*='size-'])]:size-6"
         aria-label={open ? 'Close AI assistant' : 'Open AI assistant'}
         aria-expanded={open}
       >
-        {open ? <X /> : <MessageCircle />}
+        {open ? <X /> : <AssistantLogo size={56} />}
       </Button>
 
       {/* Chat panel */}
@@ -92,9 +93,7 @@ export default function ChatWidget() {
         <div className="fixed bottom-22 right-4 sm:right-6 z-50 w-[min(370px,calc(100vw-2rem))] max-h-[min(600px,calc(100vh-8rem))] flex flex-col rounded-2xl border border-border bg-popover text-popover-foreground shadow-xl overflow-hidden">
           {/* Header */}
           <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border shrink-0">
-            <div className="w-6 h-6 rounded-md bg-foreground text-background flex items-center justify-center text-[10px] font-bold">
-              CT
-            </div>
+            <AssistantLogo size={26} />
             <span className="text-sm font-medium text-foreground">Developer Assistant</span>
             <Button variant="ghost" size="icon-sm" onClick={() => setOpen(false)} aria-label="Close" className="ml-auto text-muted-foreground">
               <X />
@@ -112,9 +111,7 @@ export default function ChatWidget() {
                 >
                   {!isUser && (
                     <div className="flex items-center gap-1.5 mb-1">
-                      <div className="w-4 h-4 rounded bg-foreground text-background flex items-center justify-center text-[8px] font-bold">
-                        CT
-                      </div>
+                      <AssistantLogo size={16} />
                       <span className="label text-[10px]">Assistant</span>
                     </div>
                   )}
@@ -135,9 +132,7 @@ export default function ChatWidget() {
             {/* Loading indicator */}
             {loading && (
               <div className="flex items-start gap-1.5">
-                <div className="w-4 h-4 rounded bg-foreground text-background flex items-center justify-center shrink-0 mt-0.5 text-[8px] font-bold">
-                  CT
-                </div>
+                <AssistantLogo size={16} className="mt-0.5" />
                 <div className="bg-muted border border-border rounded-2xl rounded-bl-sm px-3 py-2">
                   <Loader2 size={14} className="text-muted-foreground animate-spin" />
                 </div>

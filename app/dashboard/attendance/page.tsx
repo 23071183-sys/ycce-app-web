@@ -10,6 +10,7 @@ import { FormField } from '@/components/shared/FormField';
 import { SelectField } from '@/components/shared/SelectField';
 import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { HueDot } from '@/components/shared/HueDot';
 import { ClipboardList, QrCode } from 'lucide-react';
 import { MonthlyView } from './_components/MonthlyView';
 import { MarkAttendance } from './_components/MarkAttendance';
@@ -187,7 +188,10 @@ export default function AttendancePage() {
             value={subjectId}
             onValueChange={handleSubjectChange}
             placeholder="Select subject..."
-            options={subjects.map(s => ({ value: String(s.id), label: `${s.name} (${s.code})` }))}
+            options={subjects.map(s => ({
+              value: String(s.id),
+              label: <span className="flex items-center gap-2"><HueDot subject={s.code || s.id} />{s.name} ({s.code})</span>,
+            }))}
           />
           {subjectId && (
             <Button variant="link" size="sm" className="h-auto px-0" onClick={() => setShowSummary(v => !v)}>
