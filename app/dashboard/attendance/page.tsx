@@ -190,7 +190,7 @@ export default function AttendancePage() {
             placeholder="Select subject..."
             options={subjects.map(s => ({
               value: String(s.id),
-              label: <span className="flex items-center gap-2"><HueDot subject={s.code || s.id} />{s.name} ({s.code})</span>,
+              label: <span className="flex items-center gap-2"><HueDot subject={s.id} />{s.name} ({s.code})</span>,
             }))}
           />
           {subjectId && (

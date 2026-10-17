@@ -203,7 +203,7 @@ export default function MarksPage() {
                 value: String(s.id),
                 label: (
                   <span className="flex items-center gap-2">
-                    <HueDot subject={s.code || s.id} />
+                    <HueDot subject={s.id} />
                     {s.code ? `${s.code} — ` : ''}{s.name} (Year {s.year})
                   </span>
                 ),
