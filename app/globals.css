@@ -45,6 +45,22 @@
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
   --color-destructive-soft: var(--destructive-soft);
+  --color-hue-teal: var(--hue-teal);
+  --color-hue-teal-soft: var(--hue-teal-soft);
+  --color-hue-indigo: var(--hue-indigo);
+  --color-hue-indigo-soft: var(--hue-indigo-soft);
+  --color-hue-amber: var(--hue-amber);
+  --color-hue-amber-soft: var(--hue-amber-soft);
+  --color-hue-rose: var(--hue-rose);
+  --color-hue-rose-soft: var(--hue-rose-soft);
+  --color-hue-emerald: var(--hue-emerald);
+  --color-hue-emerald-soft: var(--hue-emerald-soft);
+  --color-hue-sky: var(--hue-sky);
+  --color-hue-sky-soft: var(--hue-sky-soft);
+  --color-hue-violet: var(--hue-violet);
+  --color-hue-violet-soft: var(--hue-violet-soft);
+  --color-hue-orange: var(--hue-orange);
+  --color-hue-orange-soft: var(--hue-orange-soft);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -56,8 +72,10 @@
 
 /*
  * Monochrome refined — the same palette as the mobile app (src/theme.js).
- * One accent (blue). success / warning / destructive carry meaning only:
- * attendance thresholds, fee and approval status.
+ * One accent (blue) for actions. success / warning / destructive carry
+ * meaning only: attendance thresholds, fee and approval status. Colour beyond
+ * that marks areas and identity: brand gradients for Compufest, Yash fest,
+ * the assistant and results, and a hue per subject.
  *
  * muted-foreground is used for readable secondary text across the admin
  * pages, so it is a little stronger than the mobile app's textMuted to keep
@@ -102,6 +120,33 @@
   --sidebar-accent-foreground: #0A0A0A;
   --sidebar-border: #E3E3E6;
   --sidebar-ring: #007AFF;
+  /* Brand gradients: area identities (Compufest, Yash fest, the assistant,
+     results). Fixed, so they read the same in light and dark mode. */
+  --brand-compufest-from: #0EA5E9;
+  --brand-compufest-to: #6366F1;
+  --brand-yash-from: #F97316;
+  --brand-yash-to: #EC4899;
+  --brand-assistant-from: #8B5CF6;
+  --brand-assistant-to: #EC4899;
+  --brand-results-from: #10B981;
+  --brand-results-to: #0EA5E9;
+  /* Subject hues: a subject keeps one of these everywhere (see hueFor). */
+  --hue-teal: #0D9488;
+  --hue-teal-soft: rgba(13,148,136, 0.12);
+  --hue-indigo: #4F46E5;
+  --hue-indigo-soft: rgba(79,70,229, 0.12);
+  --hue-amber: #B45309;
+  --hue-amber-soft: rgba(180,83,9, 0.12);
+  --hue-rose: #E11D48;
+  --hue-rose-soft: rgba(225,29,72, 0.12);
+  --hue-emerald: #059669;
+  --hue-emerald-soft: rgba(5,150,105, 0.12);
+  --hue-sky: #0284C7;
+  --hue-sky-soft: rgba(2,132,199, 0.12);
+  --hue-violet: #7C3AED;
+  --hue-violet-soft: rgba(124,58,237, 0.12);
+  --hue-orange: #EA580C;
+  --hue-orange-soft: rgba(234,88,12, 0.12);
 }
 
 .dark {
@@ -142,6 +187,22 @@
   --sidebar-accent-foreground: #FAFAFA;
   --sidebar-border: #262628;
   --sidebar-ring: #0A84FF;
+  --hue-teal: #2DD4BF;
+  --hue-teal-soft: rgba(45,212,191, 0.16);
+  --hue-indigo: #818CF8;
+  --hue-indigo-soft: rgba(129,140,248, 0.16);
+  --hue-amber: #FBBF24;
+  --hue-amber-soft: rgba(251,191,36, 0.16);
+  --hue-rose: #FB7185;
+  --hue-rose-soft: rgba(251,113,133, 0.16);
+  --hue-emerald: #34D399;
+  --hue-emerald-soft: rgba(52,211,153, 0.16);
+  --hue-sky: #38BDF8;
+  --hue-sky-soft: rgba(56,189,248, 0.16);
+  --hue-violet: #A78BFA;
+  --hue-violet-soft: rgba(167,139,250, 0.16);
+  --hue-orange: #FB923C;
+  --hue-orange-soft: rgba(251,146,60, 0.16);
 }
 
 /* The small uppercase, letter-spaced caption used for section titles and
@@ -153,6 +214,23 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted-foreground);
+}
+
+/* Brand gradient backgrounds, e.g. bg-brand-compufest. */
+@utility bg-brand-compufest {
+  background-image: linear-gradient(135deg, var(--brand-compufest-from), var(--brand-compufest-to));
+}
+
+@utility bg-brand-yash {
+  background-image: linear-gradient(135deg, var(--brand-yash-from), var(--brand-yash-to));
+}
+
+@utility bg-brand-assistant {
+  background-image: linear-gradient(135deg, var(--brand-assistant-from), var(--brand-assistant-to));
+}
+
+@utility bg-brand-results {
+  background-image: linear-gradient(135deg, var(--brand-results-from), var(--brand-results-to));
 }
 
 /* Large figures: light weight, digits aligned in columns. */

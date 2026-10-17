@@ -67,3 +67,28 @@ export function toDateInput(value: unknown): string {
   if (!d || Number.isNaN(d.getTime())) return '';
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+
+// Subject hues (tokens --hue-* in globals.css). Mirrors hueFor in the mobile
+// app's theme.js, so a subject has the same colour on both.
+export const HUES = ['teal', 'indigo', 'amber', 'rose', 'emerald', 'sky', 'violet', 'orange'] as const;
+export type Hue = (typeof HUES)[number];
+
+// A stable hue for a subject id or code, or null with nothing to go on.
+export function hueFor(key: string | number | null | undefined): Hue | null {
+  if (key === null || key === undefined || key === '') return null;
+  const s = String(key);
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return HUES[h % HUES.length];
+}
+
+// Colour for a letter grade: O/A+ emerald, A/B+ sky, B/C amber, D/F/Fail rose.
+export function gradeTone(grade: string | null | undefined): Hue | null {
+  const g = String(grade ?? '').trim().toUpperCase();
+  if (!g) return null;
+  if (g === 'O' || g === 'A+') return 'emerald';
+  if (g === 'A' || g === 'B+') return 'sky';
+  if (g === 'B' || g === 'C') return 'amber';
+  if (g === 'D' || g === 'F' || g === 'FAIL') return 'rose';
+  return null;
+}
