@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { ChatText } from '@/components/shared/ChatText';
 
 const SUGGESTIONS = [
   'Show all professors and their subjects',
@@ -54,7 +55,7 @@ export default function ChatPage() {
         .filter((m, i) => !(m.role === 'assistant' && i === 0))
         .map(m => ({ role: m.role, content: m.content }));
 
-      const { data } = await api.post('/chat/dashboard', { messages: apiMessages });
+      const { data } = await api.post('/chat/dashboard', { messages: apiMessages }, { timeout: 150000 });
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Sorry, something went wrong. Please try again.' }]);
@@ -105,7 +106,7 @@ export default function ChatPage() {
                   ? 'bg-primary text-primary-foreground rounded-tr-sm'
                   : 'bg-card border border-border text-foreground rounded-tl-sm',
               )}>
-                {msg.content}
+                {isUser ? msg.content : <ChatText text={msg.content} />}
               </div>
             </div>
           );

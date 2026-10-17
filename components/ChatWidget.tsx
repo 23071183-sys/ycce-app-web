@@ -5,6 +5,7 @@ import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { ChatText } from '@/components/shared/ChatText';
 
 const SUGGESTIONS = [
   'Show all professors and their subjects',
@@ -55,7 +56,7 @@ export default function ChatWidget() {
         .filter((m, i) => !(m.role === 'assistant' && i === 0))
         .map(m => ({ role: m.role, content: m.content }));
 
-      const { data } = await api.post('/chat/dashboard', { messages: apiMessages });
+      const { data } = await api.post('/chat/dashboard', { messages: apiMessages }, { timeout: 150000 });
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
     } catch {
       setMessages(prev => [
@@ -125,7 +126,7 @@ export default function ChatWidget() {
                         : 'bg-muted text-foreground border border-border rounded-bl-sm',
                     )}
                   >
-                    {msg.content}
+                    {isUser ? msg.content : <ChatText text={msg.content} />}
                   </div>
                 </div>
               );
