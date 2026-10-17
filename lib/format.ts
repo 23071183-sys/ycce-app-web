@@ -82,13 +82,14 @@ export function hueFor(key: string | number | null | undefined): Hue | null {
   return HUES[h % HUES.length];
 }
 
-// Colour for a letter grade: O/A+ emerald, A/B+ sky, B/C amber, D/F/Fail rose.
+// Colour for a letter grade, as on mobile: O/A+ emerald, A/B+ sky,
+// B/C+/C amber, D/E/F/FF/Fail rose.
 export function gradeTone(grade: string | null | undefined): Hue | null {
   const g = String(grade ?? '').trim().toUpperCase();
   if (!g) return null;
   if (g === 'O' || g === 'A+') return 'emerald';
   if (g === 'A' || g === 'B+') return 'sky';
-  if (g === 'B' || g === 'C') return 'amber';
-  if (g === 'D' || g === 'F' || g === 'FAIL') return 'rose';
+  if (g === 'B' || g === 'C+' || g === 'C') return 'amber';
+  if (g === 'D' || g === 'E' || g === 'F' || g === 'FF' || g === 'FAIL') return 'rose';
   return null;
 }
