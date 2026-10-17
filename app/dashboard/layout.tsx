@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { getToken, getUser, clearToken, updateStoredUser, useCurrentUser, USER_UPDATED_EVENT } from '@/lib/auth';
+import { getToken, getUser, clearToken, updateStoredUser, useCurrentUser, USER_UPDATED_EVENT, FEST_ADMIN_HOME, festAdminAllowed } from '@/lib/auth';
 import {
   LayoutDashboard, Users, Megaphone, BarChart2,
   Clock, GraduationCap, LogOut, Menu, ClipboardList, FileText, MessageCircle, PenSquare, Settings, MessagesSquare, IndianRupee, Briefcase, Ticket, BookOpen
@@ -54,9 +54,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // render agree.
   const { role } = useCurrentUser();
 
+  // Fest admins are kept to their pages.
+  const isFestAdmin = role === 'fest_admin';
+  useEffect(() => {
+    if (isFestAdmin && !festAdminAllowed(pathname)) router.replace(FEST_ADMIN_HOME);
+  }, [isFestAdmin, pathname, router]);
+
   useEffect(() => {
     if (!getToken()) { router.push('/login'); return; }
-    setUser(getUser());
+    const stored = getUser();
+    setUser(stored);
+    if (stored?.role === 'fest_admin') return; // no approvals badge or DMs for fest admins
     // Fetch pending approval count
     api.get('/admin/stats')
       .then(r => setPendingCount(r.data?.pending ?? 0))
@@ -73,7 +81,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Unread direct messages: polled while the tab is visible, and refreshed at
   // once when the messages page marks a thread read.
   useEffect(() => {
-    if (!getToken()) return;
+    if (!getToken() || getUser()?.role === 'fest_admin') return;
     const fetchUnread = () => {
       if (document.visibilityState !== 'visible') return;
       api.get('/messages/unread-count')
@@ -125,7 +133,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {NAV.filter(item => !('roles' in item && item.roles) || item.roles.includes(role)).map(({ href, label, icon: Icon, subtitle }) => {
+          {NAV.filter(item => isFestAdmin
+            ? festAdminAllowed(item.href)
+            : !('roles' in item && item.roles) || item.roles.includes(role)).map(({ href, label, icon: Icon, subtitle }) => {
             // Overview is the parent of every page, so it only matches exactly;
             // other items stay highlighted on their own sub-pages too.
             const active = pathname === href ||
@@ -204,11 +214,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="size-8" />
         </header>
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
-          {children}
+          {isFestAdmin && !festAdminAllowed(pathname) ? null : children}
         </main>
       </div>
       {/* The chat page is the assistant itself; a floating copy would duplicate it. */}
-      {pathname !== '/dashboard/chat' && <ChatWidget />}
+      {pathname !== '/dashboard/chat' && !isFestAdmin && <ChatWidget />}
     </div>
   );
 }

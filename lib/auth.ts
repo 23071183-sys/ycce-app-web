@@ -64,3 +64,10 @@ export function updateStoredUser(patch: Record<string, unknown>) {
   localStorage.setItem('admin_user', JSON.stringify(next));
   window.dispatchEvent(new CustomEvent(USER_UPDATED_EVENT, { detail: next }));
 }
+
+// Fest admins can use only these dashboard pages; anything else sends them to
+// Events. The API enforces the same limits on the data.
+export const FEST_ADMIN_HOME = '/dashboard/events';
+export const FEST_ADMIN_PAGES = [FEST_ADMIN_HOME, '/dashboard/settings'];
+export const festAdminAllowed = (pathname: string) =>
+  FEST_ADMIN_PAGES.some(p => pathname === p || pathname.startsWith(p + '/'));
