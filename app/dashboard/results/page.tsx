@@ -14,6 +14,7 @@ import { FormField } from '@/components/shared/FormField';
 import { SelectField } from '@/components/shared/SelectField';
 import { ErrorBanner } from '@/components/shared/ErrorBanner';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { SubjectResults } from './_components/SubjectResults';
 
 type SGPARow = {
   id: number; student_id: number; student_name: string; roll_number: string;
@@ -50,7 +51,7 @@ type StudentCGPA = {
 export default function ResultsPage() {
   const [results, setResults] = useState<SGPARow[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
-  const { isSuperAdmin } = useCurrentUser();
+  const { isSuperAdmin, isAdmin, isProfessor, ready } = useCurrentUser();
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -337,6 +338,12 @@ export default function ResultsPage() {
               </Table>
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {ready && (isAdmin || isProfessor) && (
+        <div className="mt-8">
+          <SubjectResults isAdmin={isAdmin} />
         </div>
       )}
     </div>

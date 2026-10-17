@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { ChatText } from '@/components/shared/ChatText';
+import { AssistantLogo } from '@/components/brand';
 
 const SUGGESTIONS = [
   'Show all professors and their subjects',
@@ -92,12 +93,13 @@ export default function ChatPage() {
           return (
             <div key={i} className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
               {/* Avatar */}
-              <div className={cn(
-                'w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-bold',
-                isUser ? 'bg-foreground text-background' : 'bg-muted border border-border text-foreground',
-              )}>
-                {isUser ? (user?.name?.charAt(0) || 'U') : 'CT'}
-              </div>
+              {isUser ? (
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-bold bg-foreground text-background">
+                  {user?.name?.charAt(0) || 'U'}
+                </div>
+              ) : (
+                <AssistantLogo size={28} className="mt-0.5" />
+              )}
 
               {/* Bubble */}
               <div className={cn(
@@ -114,9 +116,7 @@ export default function ChatPage() {
 
         {loading && (
           <div className="flex gap-3">
-            <div className="w-7 h-7 rounded-lg bg-muted border border-border flex items-center justify-center shrink-0">
-              <span className="text-foreground text-[10px] font-bold">CT</span>
-            </div>
+            <AssistantLogo size={28} />
             <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3">
               <Loader2 size={14} className="text-muted-foreground animate-spin" />
             </div>

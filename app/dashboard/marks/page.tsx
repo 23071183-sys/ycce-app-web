@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { FormField } from '@/components/shared/FormField';
 import { SelectField } from '@/components/shared/SelectField';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { HueDot } from '@/components/shared/HueDot';
 
 type Subject = { id: number; name: string; code: string; year: number; professor_name?: string };
 type Component = { key: string; label: string; max: number };
@@ -200,7 +201,12 @@ export default function MarksPage() {
               placeholder="Select subject…"
               options={subjects.map(s => ({
                 value: String(s.id),
-                label: `${s.code ? `${s.code} — ` : ''}${s.name} (Year ${s.year})`,
+                label: (
+                  <span className="flex items-center gap-2">
+                    <HueDot subject={s.code || s.id} />
+                    {s.code ? `${s.code} — ` : ''}{s.name} (Year {s.year})
+                  </span>
+                ),
               }))}
             />
           </FormField>
