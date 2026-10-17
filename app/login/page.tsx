@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { FormField } from '@/components/shared/FormField';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
+import { FEST_ADMIN_HOME } from '@/lib/auth';
 
 // The page is prerendered at build time; if the year has rolled over since,
 // the footer text differs from the server copy, which suppressHydrationWarning
@@ -29,12 +30,13 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const { data } = await api.post('/auth/login', { email, password });
-      if (data.user.role !== 'super_admin' && data.user.role !== 'professor' && data.user.role !== 'admin') {
-        setError('Access denied. Admin & Professor accounts only.');
+      if (!['super_admin', 'admin', 'professor', 'fest_admin'].includes(data.user.role)) {
+        setError('Access denied. Admin, professor and fest admin accounts only.');
         return;
       }
       setToken(data.token, data.user);
-      router.push('/dashboard');
+      // Fest admins only manage event registrations.
+      router.push(data.user.role === 'fest_admin' ? FEST_ADMIN_HOME : '/dashboard');
     } catch (err: any) {
       // Only a response from the server can tell us the sign-in was refused.
       // Without one the request never arrived — the API is unreachable, asleep,
