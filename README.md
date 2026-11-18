@@ -1,36 +1,140 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# YCCE CT App
 
-## Getting Started
+A full campus platform for the Computer Technology department at YCCE, Nagpur. One API serves a **web portal** for admins and faculty and a **mobile app** for students and faculty. It covers attendance, fees, results, placements, announcements, fests and an AI study assistant.
 
-First, run the development server:
+> **Status:** a personal project I designed and built end to end. It isn't officially adopted by the college. The web portal is live as a demo at [ycce-app-web.vercel.app](https://ycce-app-web.vercel.app), and the mobile app runs through Expo.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+| Part | Repository | Stack |
+|---|---|---|
+| Web portal (this repo) | [ycce-app-web](https://github.com/23071183-sys/ycce-app-web) | Next.js 16, React 19, Tailwind CSS 4, Framer Motion |
+| Mobile app | [ycce-app](https://github.com/23071183-sys/ycce-app) | Expo SDK 58, React Native 0.88, React Navigation |
+| API | [ycce-app-backend](https://github.com/23071183-sys/ycce-app-backend) | Node.js, Express 5, PostgreSQL |
+
+## Screens
+
+<p align="center">
+  <img src="docs/screenshots/phone-01.webp" alt="Student home: next lecture, streak and attendance" width="200" />
+  <img src="docs/screenshots/phone-02.webp" alt="Attendance per subject" width="200" />
+  <img src="docs/screenshots/phone-04.webp" alt="Results with SGPA, CGPA and grade sheet" width="200" />
+  <img src="docs/screenshots/phone-03.webp" alt="Subjects with professors" width="200" />
+</p>
+
+![Admin overview](docs/screenshots/web-01.webp)
+
+| Results and SGPA | Placement drives |
+|---|---|
+| ![Results](docs/screenshots/web-02.webp) | ![Placements](docs/screenshots/web-03.webp) |
+| **Announcements** | **Fest events and check-in** |
+| ![Announcements](docs/screenshots/web-04.webp) | ![Events](docs/screenshots/web-05.webp) |
+
+Screenshots use sample data only.
+
+## What it does
+
+**Students (mobile)**
+- Home with the next lecture, an attendance streak and the subjects that need attention
+- QR attendance: scan the code on the professor's screen to mark yourself present
+- Attendance per subject, results with SGPA and CGPA, and the full grade sheet
+- Fees with Razorpay payments and PDF receipts
+- Timetable, assignments, placements, announcements and messages
+- Compufest and Yash Fest registrations with tickets
+- Study tools: quizzes, flashcards with spaced review, and a study plan
+- An AI assistant that answers college questions
+
+**Faculty (web and mobile)**
+- Start a QR attendance session, or mark attendance by hand or in bulk
+- Enter MSE, TA and ESE marks per subject, and see monthly and per-subject reports
+- Post announcements to a year, a batch or a subject; set and grade assignments
+
+**Admins (web)**
+- Approve student sign-ups and manage users and faculty
+- Fee structures, invoices, offline payments, waivers and collection status
+- SGPA records, placement drives with eligibility and outcomes, fest events and door check-in
+
+Roles are `super_admin`, `admin`, `professor`, `fest_admin` and `student`, and the API checks the role on every route.
+
+## How it works
+
+```
+   Mobile app (Expo)          Web portal (Next.js)
+            \                        /
+             \                      /
+            Express API  (JWT + roles)
+     /        |          |          |         \
+ PostgreSQL  Razorpay   Expo push   Cloudinary  Claude
+             payments   + Firebase  uploads     AI assistant
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Details worth knowing:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **QR attendance that can't be shared.** The professor's screen shows a code that changes every 10 seconds (an HMAC of the session secret and the time window), so a photo sent to a friend outside the room stops working within about 20 seconds. Scans can also be checked against the classroom's location. Closing a session marks everyone else absent without overwriting anything already marked.
+- **Payments that reconcile.** Razorpay signs the raw request body, so the webhook is mounted before `express.json()` and verifies the signature. A job every 15 minutes settles any payment the webhook missed, and receipts are generated as PDFs with PDFKit.
+- **Scheduled jobs.** `node-cron` sends lecture-start reminders every minute, assignment-deadline reminders 24 hours ahead, and runs late fees and fee reminders at 09:00 IST.
+- **A host that sleeps.** The API runs on Render's free plan, which sleeps when idle. The mobile app waits up to 40 seconds and retries 502, 503 and 504 responses while the server wakes, and a GitHub Actions job pings it every 10 minutes to keep it warm.
+- **Schema on boot.** `scripts/migrate.js` creates the base tables, and the server adds newer tables and columns when it starts, so deploys don't need a separate migration step.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Run it locally
 
-## Learn More
+You need Node.js 22 or later and a PostgreSQL database.
 
-To learn more about Next.js, take a look at the following resources:
+**1. API** ([ycce-app-backend](https://github.com/23071183-sys/ycce-app-backend))
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+git clone https://github.com/23071183-sys/ycce-app-backend.git
+cd ycce-app-backend
+npm install
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Create a `.env` file:
 
-## Deploy on Vercel
+```bash
+PORT=3000
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ycce
+JWT_SECRET=any-long-random-string
+# With placeholder Cloudinary values, uploads are saved to ./uploads instead
+CLOUDINARY_CLOUD_NAME=local
+CLOUDINARY_API_KEY=local
+CLOUDINARY_API_SECRET=local
+# Optional: RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, ANTHROPIC_API_KEY, FIREBASE_*, RESEND_API_KEY
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Create the tables, add sample data and start the server:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run migrate
+npm run seed
+npm start
+```
+
+The seed creates sample accounts for local use, all with the password `test1234`: `admin@ycce.edu`, `anjali@ycce.edu` (professor), `aditya@ycce.edu` (student) and `fest@ycce.edu` (fest admin). New accounts start as pending until an admin approves them.
+
+**2. Web portal** (this repo)
+
+```bash
+npm install
+echo NEXT_PUBLIC_API_URL=http://localhost:3000/api > .env.local
+npm run dev -- -p 3001
+```
+
+Open http://localhost:3001 and sign in as the sample admin.
+
+**3. Mobile app** ([ycce-app](https://github.com/23071183-sys/ycce-app))
+
+```bash
+git clone https://github.com/23071183-sys/ycce-app.git
+cd ycce-app
+npm install
+npx expo start
+```
+
+Scan the QR code with Expo Go. The repo's `.env` points the app at the live API; to use your local one instead, set `EXPO_PUBLIC_API_URL=http://<your-computer's-IP>:3000/api`.
+
+## Deployment
+
+- **Web portal:** Vercel, with `NEXT_PUBLIC_API_URL` pointing at the API.
+- **API:** Render (see `render.yaml`) with PostgreSQL.
+- **Mobile app:** Expo EAS Update on the `preview` channel, so changes reach phones without a store release.
+
+## Author
+
+Built by [Aayush Santoshwar](https://aayush-santoshwar.vercel.app) as a solo project: the API, the web portal and the mobile app.
