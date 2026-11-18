@@ -13,10 +13,10 @@ A full campus platform for the Computer Technology department at YCCE, Nagpur. O
 ## Screens
 
 <p align="center">
-  <img src="docs/screenshots/phone-01.webp" alt="Student home: next lecture, streak and attendance" width="200" />
-  <img src="docs/screenshots/phone-02.webp" alt="Attendance per subject" width="200" />
-  <img src="docs/screenshots/phone-04.webp" alt="Results with SGPA, CGPA and grade sheet" width="200" />
-  <img src="docs/screenshots/phone-03.webp" alt="Subjects with professors" width="200" />
+  <img src="docs/screenshots/phone-01.webp" alt="Student home: next lecture, streak and attendance" width="165" />
+  <img src="docs/screenshots/phone-02.webp" alt="Attendance per subject" width="165" />
+  <img src="docs/screenshots/phone-04.webp" alt="Results with SGPA, CGPA and grade sheet" width="165" />
+  <img src="docs/screenshots/phone-03.webp" alt="Subjects with professors" width="165" />
 </p>
 
 ![Admin overview](docs/screenshots/web-01.webp)
